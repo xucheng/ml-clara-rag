@@ -1,8 +1,9 @@
-##  CLaRa: Unified Retrieval-Augmented Generation with Compression
+##  CLaRa: Bridging Retrieval and Generation with Continuous Latent Reasoning
+
 
 [![Paper](https://img.shields.io/badge/Paper-Arxiv%20Link-green)](https://arxiv.org/abs/2511.18659) [![License](https://img.shields.io/badge/License-Apple-blue)](LICENSE) [![deploy](https://img.shields.io/badge/Hugging%20Face-CLaRa_Base-FFEB3B)](https://huggingface.co/probejie/CLaRa-Base) [![deploy](https://img.shields.io/badge/Hugging%20Face-CLaRa_Instruct-FFEB3B)](https://huggingface.co/probejie/CLaRa-Instruct) [![deploy](https://img.shields.io/badge/Hugging%20Face-CLaRa_End_to_end-FFEB3B)](https://huggingface.co/probejie/CLaRa-E2E)
 
-This software project accompanies the research paper, **CLaRa: Unified Retrieval-Augmented Generation with Compression**.
+This software project accompanies the research paper, **CLaRa: Bridging Retrieval and Generation with Continuous Latent Reasoning**.
 
 ### Updates
 
