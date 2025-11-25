@@ -19,7 +19,7 @@ In this work, we investigate:
 
 <div align="center">
 
-<img src="figs/sample_main.png" width="80%"/>
+<img src="figs/intro.png" width="100%"/>
 
 </div>
 
