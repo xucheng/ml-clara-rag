@@ -5,6 +5,25 @@
 
 This software project accompanies the research paper, **CLaRa: Bridging Retrieval and Generation with Continuous Latent Reasoning**.
 
+## Table of Contents
+
+- [Updates](#updates)
+- [Motivation](#motivation)
+- [Three-Stage Training](#three-stage-training)
+- [Quick Start](#quick-start)
+- [Getting Started](#getting-started)
+  - [1. Prepare code and environment](#1-prepare-code-and-environment)
+  - [2. Data preparation](#2-data-preparation)
+  - [3. Start training](#3-start-training)
+  - [4. Distributed Training](#4-distributed-training)
+- [Inference](#inference)
+- [Evaluation](#evaluation)
+- [Results](#results)
+- [Data Pipeline](#data-pipeline)
+- [Troubleshooting](#troubleshooting)
+- [Acknowledgments](#acknowledgments)
+- [Citation](#citation)
+
 ### Updates
 
 - Nov 25, 2025. Models are available on Huggingface.
@@ -55,14 +74,47 @@ CLaRa uses a carefully designed three-stage training approach:
 
 In this repository, we release our implementation of **CLaRa**, built upon [OpenRLHF](https://github.com/OpenRLHF/OpenRLHF).
 
-### Getting Started
+### Quick Start
+
+```bash
+# 1. Setup environment
+conda create -n clara python=3.10 -y
+conda activate clara
+pip install -r requirements.txt
+
+# 2. Configure settings
+cp .env.example .env
+# Edit .env with your API keys and paths
+
+# 3. Process your data (optional - use provided examples to skip)
+export RAW_DATA_DIR="./raw_data"
+bash scripts/run_data_pipeline.sh
+
+# 4. Train Stage 1 (Compression Pretraining)
+export MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+bash scripts/train_pretraining.sh
+
+# 5. Train Stage 2 (Instruction Tuning)
+export PRETRAIN_CKPT="./checkpoints/clara_stage1"
+bash scripts/train_instruction_tuning.sh
+
+# 6. Train Stage 3 (End-to-End)
+export PRETRAIN_CHECKPOINT="./checkpoints/clara_stage2"
+bash scripts/train_stage_end_to_end.sh
+```
+
+### Project Structure
 
 ```
-├── scripts/                      # Training and evaluation scripts
+├── scripts/                      # Training, evaluation, and data processing scripts
 │   ├── train_pretraining.sh     # Stage 1: Compression pretraining
 │   ├── train_instruction_tuning.sh  # Stage 2: Compression instruction tuning
 │   ├── train_stage_end_to_end.sh    # Stage 3: End-to-end training
-│   └── evaluation_end_to_end.sh     # Evaluation scripts
+│   ├── run_data_pipeline.sh     # Automated data pipeline
+│   ├── extract_with_docling.py  # Document extraction
+│   ├── extract_images.py        # Image processing with vision LLMs
+│   ├── synthesize_data.py       # QA synthesis
+│   └── evaluation_*.sh          # Evaluation scripts
 ├── openrlhf/                     # Core training framework
 │   ├── models/                   # Model implementations
 │   │   └── modeling_clara.py   # CLaRa model definition
@@ -72,11 +124,12 @@ In this repository, we release our implementation of **CLaRa**, built upon [Open
 │   │   └── sft_trainer.py        # SFT trainer
 │   └── cli/                      # Command line interface
 │       └── train_sft.py          # Main training script
-├── evaluation/                   # Evaluation framework
 ├── example/                      # Example training data
 │   ├── pretrain_data.jsonl
-│   ├── instruction_tuning_data.jsonl
+│   ├── instruction_data.jsonl
 │   └── end_to_end_data.jsonl
+├── .env.example                  # Environment variables template
+├── DATA_PIPELINE_GUIDE.md        # Detailed data pipeline documentation
 └── README.md                     # This file
 ```
 
@@ -94,7 +147,9 @@ conda activate $env
 pip install -r requirements.txt
 
 # Set up environment variables
-export PYTHONPATH=/path/to/clara:$PYTHONPATH
+cp .env.example .env
+# Edit .env with your settings (API keys, paths, etc.)
+source .env  # Or manually export the variables
 ```
 
 Key dependencies include:
@@ -104,23 +159,86 @@ Key dependencies include:
 - Flash Attention 2
 - Accelerate
 
+**Environment Variables:**
+
+Copy `.env.example` to `.env` and configure:
+
+```bash
+# Data pipeline settings
+RAW_DATA_DIR=./raw_data           # Your raw documents directory
+OPENAI_API_KEY=sk-...             # API key for LLM services
+BASE_URL=https://...               # API endpoint
+VISION_MODEL=qwen-vl-max          # Vision model for image processing
+MODEL=qwen-turbo                   # Text model for synthesis
+
+# Training settings
+MODEL_PATH=mistralai/Mistral-7B-Instruct-v0.2  # Base model
+CHECKPOINT_ROOT=./checkpoints      # Where to save checkpoints
+DATA_PATH=./data                   # Training data directory
+```
+
 #### 2. Data preparation
+
+**Option A: Use the automated data pipeline (Recommended)**
+
+The repository includes an end-to-end data pipeline that processes raw documents (PDF, DOCX, PPTX, images) into training-ready JSONL files:
+
+```bash
+# 1. Place your raw documents in a directory
+mkdir -p raw_data
+# Copy your PDF, DOCX, PPTX, and image files to raw_data/
+
+# 2. Configure API settings
+export RAW_DATA_DIR="./raw_data"
+export OPENAI_API_KEY="sk-..."
+export BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+export VISION_MODEL="qwen-vl-max"
+export MODEL="qwen-turbo"
+
+# 3. Run the data pipeline
+bash scripts/run_data_pipeline.sh
+```
+
+**What happens under the hood:**
+
+1. **Cleanup**: Removes old assets in `example/extracted_assets` to ensure a clean slate
+2. **Step 1 - Docling Extraction**:
+   - Parses PDF/DOCX/PPTX with layout-aware analysis
+   - Extracts text to JSONL format
+   - Extracts embedded images to `extracted_assets/`
+3. **Step 1.5 - Vision Processing** (if `VISION_MODEL` is set):
+   - **Pass 1**: Scans `RAW_DATA_DIR` for standalone JPG/PNG files
+   - **Pass 2**: Scans `extracted_assets/` for embedded images from Step 1
+   - **Self-Healing**: Validates images with Pillow, converts to JPEG, auto-skips corrupt files
+4. **Step 2 - LLM Synthesis**:
+   - Uses `$MODEL` to generate dense summaries
+   - Creates bilingual QA pairs (3-5 pairs per chunk)
+   - Supports cross-lingual retrieval (e.g., EN query → CN doc)
+
+**Output files:**
+- `example/clara_training_data.jsonl` - Final training data
+- `example/raw_knowledge.jsonl` - Intermediate data (text + image descriptions)
+- `example/pretrain_data.jsonl` - Stage 1 training data
+- `example/instruction_data.jsonl` - Stage 2 training data
+- `example/end_to_end_data.jsonl` - Stage 3 training data
+- `example/extracted_assets/` - Extracted image files
+
+**Option B: Manually prepare data**
 
 Prepare training data in JSONL format. For pretraining stage:
 
-```bash
-# Example data format for pretraining
+```json
 {
     "data_type": "qa",
-    "question": ["Question 1",],
+    "question": ["Question 1"],
     "answers": ["Answer 1"],
     "docs": ["Document 1"]
 }
 ```
 
-For end-to-end training:
+For instruction tuning and end-to-end training:
 
-```bash
+```json
 {
     "question": "Single question text",
     "docs": ["Document 1", "Document 2", ...],
@@ -130,15 +248,30 @@ For end-to-end training:
 
 #### 3. Start training
 
-**Stage 1: Compression Pretraining (KPCP)**
-
-Pre-train the document compressor :
+All training scripts now support environment variable configuration. Set the required variables before running:
 
 ```bash
+# Common settings for all stages
+export MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"  # Or your model path
+export CHECKPOINT_ROOT="./checkpoints"
+export DATA_PATH="./example"  # Where your JSONL files are located
+```
+
+**Stage 1: Compression Pretraining (KPCP)**
+
+Train the document compressor using KPCP framework:
+
+```bash
+# Set data path (if different from default)
+export DATA_PATH="./example"
+
+# Run training
 bash scripts/train_pretraining.sh
 ```
 
-Key parameters:
+The model will be saved to `$CHECKPOINT_ROOT/clara_cluster2_2m_mix_stage1`
+
+Key parameters (configured in the script):
 - `--compress_rate`: Compression rate (default: 32)
 - `--doc_max_length`: Maximum document length (default: 256)
 - `--stage stage1`: Training stage
@@ -150,11 +283,17 @@ Key parameters:
 Fine-tune the compressor on instruction-following tasks:
 
 ```bash
+# Point to Stage 1 checkpoint
+export PRETRAIN_CKPT="./checkpoints/clara_cluster2_2m_mix_stage1"
+
+# Run training
 bash scripts/train_instruction_tuning.sh
 ```
 
+The model will be saved to `$CHECKPOINT_ROOT/clara_cluster1_2_2m_split_data_single_32_mistral`
+
 Key parameters:
-- `--pretrain_checkpoint`: Path to stage 1 checkpoint
+- `--pretrain_checkpoint`: Path to stage 1 checkpoint (via `$PRETRAIN_CKPT`)
 - `--stage stage1_2`: Training stage
 - `--generation_top_k`: Top-k sampling for generation (default: 5)
 - `--mse_loss`: Use MSE loss for compression training
@@ -162,14 +301,20 @@ Key parameters:
 
 **Stage 3: End-to-End Training**
 
-Fine-tune the model end-to-end with retrieval:
+Jointly train retrieval and generation end-to-end:
 
 ```bash
+# Point to Stage 2 checkpoint
+export PRETRAIN_CHECKPOINT="./checkpoints/clara_cluster1_2_2m_split_data_single_32_mistral"
+
+# Run training
 bash scripts/train_stage_end_to_end.sh
 ```
 
+The model will be saved to `$CHECKPOINT_ROOT/clara_stage2_debug`
+
 Key parameters:
-- `--pretrain_checkpoint`: Path to stage 2 checkpoint
+- `--pretrain_checkpoint`: Path to stage 2 checkpoint (via `$PRETRAIN_CHECKPOINT`)
 - `--stage stage2`: Training stage
 - `--generation_top_k`: Top-k sampling for generation
 - `--do_eval_gen`: Enable generation evaluation
@@ -366,6 +511,151 @@ We evaluate our document compressor on four QA datasets (NQ, HotpotQA, MuSiQue, 
 </div>
 
 For detailed experimental results and analysis, please refer to our paper.
+
+---
+
+## Data Pipeline
+
+The repository includes a comprehensive data pipeline for processing raw documents into training-ready data. The pipeline is designed for **hybrid environments**: data preparation on local machines (macOS/Linux) and optional model training on GPU clouds (Colab/AWS).
+
+### Pipeline Architecture
+
+```
+Raw Documents (PDF/DOCX/PPTX/Images)
+    ↓
+[Step 1: Docling Extraction] → Text + Embedded Images
+    ↓
+[Step 1.5: Vision Processing] → Image Descriptions
+    ↓
+[Step 2: LLM Synthesis] → QA Pairs + Training Data
+    ↓
+Output: pretrain_data.jsonl, instruction_data.jsonl, end_to_end_data.jsonl
+```
+
+### Pipeline Components
+
+| Component | Function | Key Technology |
+|-----------|----------|----------------|
+| **extract_with_docling.py** | Extract text and images from documents | IBM Docling (layout-aware) |
+| **extract_images.py** | Generate semantic image descriptions | Vision LLMs (Qwen-VL/GPT-4o) |
+| **synthesize_data.py** | Synthesize QA pairs and training data | Text LLMs (Qwen/GPT) |
+| **run_data_pipeline.sh** | Orchestrate the entire pipeline | Bash automation |
+
+### Key Features
+
+- ✅ **Smart Extraction**: Layout-aware PDF parsing preserves document structure
+- ✅ **Visual Understanding**: Automatic description of charts, diagrams, and flowcharts
+- ✅ **Bilingual Support**: Cross-lingual QA pairs (e.g., EN query → CN doc)
+- ✅ **Self-Healing**: Auto-validates images, skips corrupt files, supports resume
+- ✅ **Flexible APIs**: Works with OpenAI, Aliyun DashScope, and compatible endpoints
+
+### Quick Start
+
+```bash
+# 1. Prepare raw documents
+mkdir -p raw_data
+# Copy your PDF, DOCX, PPTX, and image files to raw_data/
+
+# 2. Configure API settings
+export RAW_DATA_DIR="./raw_data"
+export OPENAI_API_KEY="sk-..."
+export BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
+export VISION_MODEL="qwen-vl-max"
+export MODEL="qwen-turbo"
+
+# 3. Run pipeline
+bash scripts/run_data_pipeline.sh
+```
+
+### Pipeline Steps Explained
+
+**Step 1 - Cleanup & Docling Extraction**
+```bash
+# Cleans previous assets
+rm -rf example/extracted_assets
+
+# Extracts text and images
+python scripts/extract_with_docling.py \
+    --input_dir "$RAW_DATA_DIR" \
+    --output_file "./example/raw_knowledge.jsonl"
+```
+
+**Step 1.5 - Vision Processing** (Optional)
+```bash
+# Pass 1: Standalone images in RAW_DATA_DIR
+# Pass 2: Embedded images from Step 1
+python scripts/extract_images.py \
+    --input_dir "$RAW_DATA_DIR" \
+    --model "$VISION_MODEL"
+```
+
+**Step 2 - LLM Synthesis**
+```bash
+# Generates QA pairs for all 3 training stages
+python scripts/synthesize_data.py \
+    --input_file "./example/raw_knowledge.jsonl" \
+    --output_dir "./example" \
+    --model "$MODEL"
+```
+
+### Supported APIs
+
+| Provider | BASE_URL | Models |
+|----------|----------|--------|
+| **Aliyun DashScope** | `https://dashscope.aliyuncs.com/compatible-mode/v1` | qwen-turbo, qwen-vl-max |
+| **OpenAI** | `https://api.openai.com/v1` | gpt-4o, gpt-4-turbo |
+| **DeepSeek** | `https://api.deepseek.com` | deepseek-chat |
+
+### Hybrid Training Workflow
+
+For users without local GPUs (e.g., macOS users):
+
+1. **Local**: Run data pipeline → Generate JSONL files
+2. **Package**: `tar -czvf clara-data.tar.gz example/`
+3. **Upload**: Transfer to Google Drive
+4. **Cloud**: Run training on Colab/AWS with GPU
+
+See [DATA_PIPELINE_GUIDE.md](DATA_PIPELINE_GUIDE.md) for detailed Colab setup instructions.
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Environment Variables Not Working**
+```bash
+# Make sure to export variables before running scripts
+export MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+export CHECKPOINT_ROOT="./checkpoints"
+
+# Or source .env file
+source .env
+```
+
+**Data Pipeline Issues**
+- **401 Authentication Error**: Check `OPENAI_API_KEY` and `BASE_URL` match your provider
+- **404 Model Not Found**: Set `MODEL` to match your provider (e.g., `qwen-turbo` for Aliyun)
+- **Image Format Errors**: The pipeline auto-skips corrupt images (self-healing)
+
+**Training Issues**
+- **OOM Error**: Reduce `--micro_train_batch_size` in training scripts (default: 2 → 1)
+- **NCCL Timeout**: Check `NCCL_DEBUG=INFO` environment variable is set
+- **Checkpoint Not Found**: Verify `PRETRAIN_CKPT` or `PRETRAIN_CHECKPOINT` points to correct stage
+
+**Path Issues**
+- All paths now use environment variables with sensible defaults
+- Use absolute paths for `MODEL_PATH` if loading local models
+- Data paths default to `./example` if not specified
+
+### Performance Optimization
+
+- Enable gradient checkpointing: `--gradient_checkpointing`
+- Use Flash Attention 2: `--flash_attn` (already enabled in scripts)
+- Use mixed precision: `--bf16` (already enabled in scripts)
+- Adjust compression rate: Lower values (4-16) = better quality, slower; Higher values (32-64) = faster, less quality
+
+---
 
 ## Acknowledgments
 

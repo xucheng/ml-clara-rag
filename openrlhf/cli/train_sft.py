@@ -44,10 +44,11 @@ def create_clara_config(args: argparse.Namespace) -> CLaRaConfig:
         different_mem_tokens=True,
         generation_top_k=args.generation_top_k,
         device_map=None,
-        lora_r=16,
+        lora_r=args.lora_rank,
         training_form="both_separately",
         training_stage=args.stage,
         sep=True,
+        quantization=args.quantization,
         attn_implementation='flash_attention_2',
         stage2_retrieval_top_n=args.stage2_retrieval_top_n,
         pure_inference=args.pure_inference
@@ -251,11 +252,14 @@ def create_argument_parser() -> argparse.ArgumentParser:
     model_group.add_argument("--generation_top_k", type=int, default=1, help="Top-k for generation")
     model_group.add_argument("--pure_inference", action="store_true", default=False, 
                            help="Pure inference mode")
+    model_group.add_argument("--lora_rank", type=int, default=64, help="LoRA rank (r)")
 
     # CLaRa specific arguments
     clara_group = parser.add_argument_group("CLaRa Configuration")
     clara_group.add_argument("--doc_max_length", type=int, default=256, help="Max document length")
     clara_group.add_argument("--compress_rate", type=int, default=32, help="Document compression rate")
+    clara_group.add_argument("--quantization", type=str, default="no", choices=["no", "int4", "int8"], 
+                            help="Quantization mode")
     clara_group.add_argument("--qa_loss", action="store_true", default=True, 
                             help="Use QA loss for joint training")
     clara_group.add_argument("--stage2_mips", action="store_true", default=False, 

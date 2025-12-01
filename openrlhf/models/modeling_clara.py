@@ -138,7 +138,7 @@ class CLaRaConfig(PretrainedConfig):
                  compr_rate: int = 64,
                  compr_n_layers: int = None,
                  compr_every_n_layer: int = None,
-                 compr_base_model_name: str = '/mnt/ceph_rbd/model/Mistral-7B-Instruct-v0.2',
+                 compr_base_model_name: str = 'mistralai/Mistral-7B-Instruct-v0.2',
                  compr_rms_norm: bool = False,
                  compr_mlp_hidden_dim: int = 8096,
                  compr_use_mlp: bool = True,
@@ -454,7 +454,8 @@ class CLaRa(PreTrainedModel):
         tokenizer = AutoTokenizer.from_pretrained(
             cfg.decoder_model_name, 
             use_fast=True, 
-            padding_side='left'
+            padding_side='left',
+            trust_remote_code=True
         )
 
         # Define special tokens
@@ -484,13 +485,15 @@ class CLaRa(PreTrainedModel):
         tokenizer.sep_token_id = tokenizer.convert_tokens_to_ids('<SEP>')
         
         # Handle model-specific tokens
-        if tokenizer.bos_token is None and 'qwen' in cfg.decoder_model_name.lower():
-            tokenizer.bos_token = tokenizer.special_tokens_map['additional_special_tokens'][0]
-            tokenizer.bos_token_id = tokenizer.convert_tokens_to_ids(tokenizer.bos_token)
-        
-        if tokenizer.eos_token is None and "qwen" in cfg.decoder_model_name.lower():
-            tokenizer.eos_token = tokenizer.special_tokens_map['additional_special_tokens'][1]
-            tokenizer.eos_token_id = tokenizer.convert_tokens_to_ids(tokenizer.eos_token)
+        # For Qwen, ensuring EOS/PAD are correct
+        if "qwen" in cfg.decoder_model_name.lower():
+             if tokenizer.pad_token is None:
+                 if tokenizer.eos_token is not None:
+                     tokenizer.pad_token = tokenizer.eos_token
+                 else:
+                     # Fallback for Qwen if no EOS defined (rare)
+                     tokenizer.add_special_tokens({'pad_token': '<|endoftext|>'})
+                     tokenizer.pad_token = '<|endoftext|>'
 
         # KBTC training tokens
         if cfg.kbtc_training:
@@ -498,9 +501,12 @@ class CLaRa(PreTrainedModel):
             tokenizer.kbtc_token = '<KBTC>'
             tokenizer.kbtc_token_id = tokenizer.convert_tokens_to_ids('<KBTC>')
 
-        # Set pad token
+        # Set pad token generic fallback
         if tokenizer.pad_token_id is None:
-            tokenizer.pad_token_id = tokenizer.bos_token_id
+            if tokenizer.eos_token_id is not None:
+                tokenizer.pad_token_id = tokenizer.eos_token_id
+            elif tokenizer.bos_token_id is not None:
+                tokenizer.pad_token_id = tokenizer.bos_token_id
         
         print(f'Memory token count: {n_mem_tokens}')
         return tokenizer
@@ -1681,7 +1687,7 @@ class CLaRa(PreTrainedModel):
 if __name__ == '__main__':
     # Example configuration
     cfg = CLaRaConfig(
-        decoder_model_name='/mnt/ceph_rbd/model/Mistral-7B-Instruct-v0.2',
+        decoder_model_name='mistralai/Mistral-7B-Instruct-v0.2',
         compr_model_name="mistral_trimmed",
         compr_rate=64,
         compr_n_layers=5,

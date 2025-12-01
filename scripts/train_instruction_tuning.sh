@@ -12,19 +12,22 @@ DEBUG=${DEBUG:-0}
 ########################################
 # Environment Variables
 ########################################
-export PYTHONPATH=/mnt/ceph_rbd/comp_rag/clara:$PYTHONPATH
-export WANDB_DIR=/mnt/task_wrapper/user_output/artifacts/data/wandb_logs
+PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
+export PYTHONPATH=$PROJECT_ROOT:$PYTHONPATH
+export WANDB_DIR="${WANDB_DIR:-$PROJECT_ROOT/wandb_logs}"
 export NCCL_DEBUG=INFO
 
 ########################################
 # Configuration
 ########################################
-data_path=/mnt/ceph_rbd/comp_rag/clara/debug_data
+DATA_ROOT="${DATA_ROOT:-$PROJECT_ROOT/data}"
+data_path="${DATA_PATH:-$DATA_ROOT}"
 SAVE_MODEL_NAME=clara_cluster1_2_2m_split_data_single_32_mistral
-SAVE_PATH=/mnt/ceph_rbd/comp_rag/clara/debug_data/train_checkpoint/$SAVE_MODEL_NAME
-WANDB_TOKEN=xx
-MODEL_PATH=/mnt/ceph_rbd/model/Mistral-7B-Instruct-v0.2
-PRETRAIN_CKPT=/mnt/ceph_rbd/comp_rag/clara/debug_data/train_checkpoint/clara_cluster2_2m_mix_stage1
+CHECKPOINT_ROOT="${CHECKPOINT_ROOT:-$PROJECT_ROOT/checkpoints}"
+SAVE_PATH="${SAVE_PATH:-$CHECKPOINT_ROOT/$SAVE_MODEL_NAME}"
+WANDB_TOKEN="${WANDB_TOKEN:-xx}"
+MODEL_PATH="${MODEL_PATH:-mistralai/Mistral-7B-Instruct-v0.2}"
+PRETRAIN_CKPT="${PRETRAIN_CKPT:-$CHECKPOINT_ROOT/clara_stage1}"
 
 mkdir -p $SAVE_PATH
 # cp -r /mnt/ceph_rbd/comp_rag/clara $SAVE_PATH/

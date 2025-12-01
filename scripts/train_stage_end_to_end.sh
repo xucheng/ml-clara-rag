@@ -10,15 +10,19 @@ set -ex
 DEBUG=${DEBUG:-0}
 
 # Set environment variables
-export PYTHONPATH=/mnt/ceph_rbd/comp_rag/clara:$PYTHONPATH
-export WANDB_DIR=/mnt/ceph_rbd/comp_rag/clara/debug_data/wandb_logs
+PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
+export PYTHONPATH=$PROJECT_ROOT:$PYTHONPATH
+export WANDB_DIR="${WANDB_DIR:-$PROJECT_ROOT/wandb_logs}"
 
 # Configuration
-data_path=/mnt/ceph_rbd/comp_rag/clara/debug_data
+DATA_ROOT="${DATA_ROOT:-$PROJECT_ROOT/data}"
+data_path="${DATA_PATH:-$DATA_ROOT}"
 SAVE_MODEL_NAME=clara_stage2_debug
-SAVE_PATH=/mnt/ceph_rbd/comp_rag/clara/debug_data/train_checkpoint/$SAVE_MODEL_NAME
-WANDB_TOKEN=xx
-MODEL_PATH=/mnt/ceph_rbd/model/Mistral-7B-Instruct-v0.2
+CHECKPOINT_ROOT="${CHECKPOINT_ROOT:-$PROJECT_ROOT/checkpoints}"
+SAVE_PATH="${SAVE_PATH:-$CHECKPOINT_ROOT/$SAVE_MODEL_NAME}"
+WANDB_TOKEN="${WANDB_TOKEN:-xx}"
+MODEL_PATH="${MODEL_PATH:-mistralai/Mistral-7B-Instruct-v0.2}"
+PRETRAIN_CHECKPOINT="${PRETRAIN_CHECKPOINT:-$CHECKPOINT_ROOT/clara_stage1}"
 
 mkdir -p $SAVE_PATH
 # cp -r /mnt/conductor_data/clara $SAVE_PATH/
@@ -47,7 +51,7 @@ training_commands="openrlhf.cli.train_sft \
    --max_len 1024 \
    --dataset $data_path/end_to_end_data.jsonl \
    --pretrain $MODEL_PATH \
-   --pretrain_checkpoint /mnt/ceph_rbd/comp_rag/clara/debug_data/train_checkpoint/clara_cluster1_2_2m_split_data_single_32_mistral \
+   --pretrain_checkpoint $PRETRAIN_CHECKPOINT \
    --train_batch_size 32 \
    --micro_train_batch_size 2 \
    --ckpt_path $SAVE_PATH \
