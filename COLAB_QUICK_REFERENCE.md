@@ -216,7 +216,7 @@ print(answer)
 
 1. **文档**: [COLAB_TRAINING_GUIDE.md](COLAB_TRAINING_GUIDE.md)
 2. **GitHub**: [ml-clara Issues](https://github.com/apple/ml-clara/issues)
-3. **Flash Attn**: [FLASH_ATTN_FIX.md](FLASH_ATTN_FIX.md)
+3. **Flash Attn**: [训练指南 Q5](COLAB_TRAINING_GUIDE.md#q5-flash-attention-安装失败)
 
 ---
 

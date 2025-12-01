@@ -663,7 +663,7 @@ print(f"Available GPUs: {NUM_GPUS}")
 ### 文档
 - [README.md](README.md) - 项目主文档
 - [DATA_PIPELINE_GUIDE.md](DATA_PIPELINE_GUIDE.md) - 数据处理指南
-- [FLASH_ATTN_FIX.md](FLASH_ATTN_FIX.md) - Flash Attention 问题解决
+- [Flash Attention 安装](#q5-flash-attention-安装失败) - 本文档 Q5 部分
 
 ### 模型
 - [CLaRa-Base](https://huggingface.co/probejie/CLaRa-Base) - 基础模型
@@ -733,7 +733,7 @@ print(f"Available GPUs: {NUM_GPUS}")
 
 1. 检查本文档的 [常见问题](#常见问题) 部分
 2. 查看 [GitHub Issues](https://github.com/apple/ml-clara/issues)
-3. 阅读 [FLASH_ATTN_FIX.md](FLASH_ATTN_FIX.md)
+3. 参考本文档的 [Flash Attention 安装问题](#q5-flash-attention-安装失败)
 
 **报告 Bug：**
 - 提供完整错误信息
