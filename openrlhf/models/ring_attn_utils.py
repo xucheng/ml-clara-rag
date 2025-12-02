@@ -1,7 +1,41 @@
 import torch
 import torch.distributed as dist
-from flash_attn.bert_padding import index_first_axis, pad_input, rearrange, unpad_input
-from flash_attn.utils.distributed import all_gather
+
+# Try to import flash_attn, use fallback if not available
+try:
+    from flash_attn.bert_padding import index_first_axis, pad_input, rearrange, unpad_input
+    from flash_attn.utils.distributed import all_gather
+    FLASH_ATTN_AVAILABLE = True
+except ImportError:
+    FLASH_ATTN_AVAILABLE = False
+    # Provide fallback implementations
+    from einops import rearrange
+
+    def index_first_axis(x, indices):
+        """Fallback implementation without flash_attn"""
+        return x[indices]
+
+    def pad_input(x, indices, batch, seqlen):
+        """Fallback implementation without flash_attn"""
+        output = torch.zeros(batch * seqlen, *x.shape[1:], dtype=x.dtype, device=x.device)
+        output[indices] = x
+        return output.view(batch, seqlen, *x.shape[1:])
+
+    def unpad_input(x, attention_mask):
+        """Fallback implementation without flash_attn"""
+        seqlens_in_batch = attention_mask.sum(dim=-1, dtype=torch.int32)
+        indices = torch.nonzero(attention_mask.flatten(), as_tuple=False).flatten()
+        max_seqlen_in_batch = seqlens_in_batch.max().item()
+        cu_seqlens = torch.nn.functional.pad(torch.cumsum(seqlens_in_batch, dim=0, dtype=torch.int32), (1, 0))
+        x = x.view(-1, *x.shape[2:])[indices]
+        return x, indices, cu_seqlens, max_seqlen_in_batch, seqlens_in_batch
+
+    def all_gather(tensor, group):
+        """Fallback implementation without flash_attn"""
+        world_size = dist.get_world_size(group=group)
+        tensor_list = [torch.zeros_like(tensor) for _ in range(world_size)]
+        dist.all_gather(tensor_list, tensor, group=group)
+        return torch.cat(tensor_list, dim=0)
 
 RING_ATTN_GROUP = None
 
