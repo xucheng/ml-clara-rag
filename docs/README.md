@@ -37,13 +37,6 @@ Complete documentation for CLaRa: Bridging Retrieval and Generation with Continu
   - Pre-publication checklist
   - Emergency response procedures
 
-### Development
-
-- **[PUSH_SCRIPT_GUIDE.md](PUSH_SCRIPT_GUIDE.md)** - Guide for repository management
-  - Using push scripts for batch operations
-  - Automation best practices
-  - Common workflows
-
 ---
 
 ## 🚀 Quick Start
