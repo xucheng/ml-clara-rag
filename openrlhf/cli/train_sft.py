@@ -49,7 +49,7 @@ def create_clara_config(args: argparse.Namespace) -> CLaRaConfig:
         training_stage=args.stage,
         sep=True,
         quantization=args.quantization,
-        attn_implementation='flash_attention_2',
+        attn_implementation=None,  # Auto-detect: use flash_attention_2 if available, else eager
         stage2_retrieval_top_n=args.stage2_retrieval_top_n,
         pure_inference=args.pure_inference
     )

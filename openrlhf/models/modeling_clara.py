@@ -353,14 +353,19 @@ class CLaRa(PreTrainedModel):
     def _create_decoder(self, cfg: CLaRaConfig) -> AutoModelForCausalLM:
         """Create and configure the decoder model."""
         # Determine attention implementation
-        # If not specified or flash_attn not available, use eager
+        # Always check if flash_attn is available before using it
         attn_impl = cfg.attn_implementation
-        if attn_impl is None:
+
+        # If flash_attention_2 is requested (either explicitly or by default)
+        # but flash_attn is not installed, fall back to eager
+        if attn_impl == "flash_attention_2" or attn_impl is None:
             try:
                 import flash_attn
                 attn_impl = "flash_attention_2"
             except ImportError:
                 attn_impl = "eager"  # Fallback to standard PyTorch attention
+                if cfg.attn_implementation == "flash_attention_2":
+                    print("⚠️  Warning: flash_attn not installed, falling back to eager attention")
 
         if not torch.cuda.is_available():
             return AutoModelForCausalLM.from_pretrained(
