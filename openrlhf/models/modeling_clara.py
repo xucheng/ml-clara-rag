@@ -352,10 +352,21 @@ class CLaRa(PreTrainedModel):
     
     def _create_decoder(self, cfg: CLaRaConfig) -> AutoModelForCausalLM:
         """Create and configure the decoder model."""
+        # Determine attention implementation
+        # If not specified or flash_attn not available, use eager
+        attn_impl = cfg.attn_implementation
+        if attn_impl is None:
+            try:
+                import flash_attn
+                attn_impl = "flash_attention_2"
+            except ImportError:
+                attn_impl = "eager"  # Fallback to standard PyTorch attention
+
         if not torch.cuda.is_available():
             return AutoModelForCausalLM.from_pretrained(
                 cfg.decoder_model_name,
                 torch_dtype=torch.bfloat16,
+                attn_implementation=attn_impl,
                 resume_download=True,
                 trust_remote_code=True,
                 device_map=cfg.device_map
@@ -365,7 +376,7 @@ class CLaRa(PreTrainedModel):
             return AutoModelForCausalLM.from_pretrained(
                 cfg.decoder_model_name,
                 torch_dtype=torch.bfloat16,
-                attn_implementation=cfg.attn_implementation,
+                attn_implementation=attn_impl,
                 device_map=cfg.device_map
             )
         elif cfg.quantization == "int4":
@@ -377,7 +388,7 @@ class CLaRa(PreTrainedModel):
             return AutoModelForCausalLM.from_pretrained(
                 cfg.decoder_model_name,
                 quantization_config=quant_config,
-                attn_implementation=cfg.attn_implementation,
+                attn_implementation=attn_impl,
                 torch_dtype=torch.bfloat16,
                 resume_download=True,
                 trust_remote_code=True,
@@ -392,7 +403,7 @@ class CLaRa(PreTrainedModel):
             return AutoModelForCausalLM.from_pretrained(
                 cfg.decoder_model_name,
                 quantization_config=quant_config,
-                attn_implementation=cfg.attn_implementation,
+                attn_implementation=attn_impl,
                 torch_dtype=torch.bfloat16,
                 resume_download=True,
                 trust_remote_code=True,
