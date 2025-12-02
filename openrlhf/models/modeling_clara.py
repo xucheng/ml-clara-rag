@@ -1011,7 +1011,7 @@ class CLaRa(PreTrainedModel):
         prompt_user = f"Background:\n{docs}"
         
         sys_prompt = [{"role": "system", "content": prompt_system}]
-        user_prompt = [{"role": "user", "content": prompt_user.replace(':\ ', ': ')}]
+        user_prompt = [{"role": "user", "content": prompt_user.replace(':\\ ', ': ')}]
 
         qa_lines = [f"Question: {q}\nAnswer: {a}" for q, a in zip(query, answer)]
         query_answer = "\n".join(qa_lines)
@@ -1054,7 +1054,7 @@ class CLaRa(PreTrainedModel):
         prompt_user = random.choice(PARAPHRASE_INSTRUCTIONS).format(docs=docs)
 
         sys_prompt = [{"role": "system", "content": prompt_system}]
-        user_prompt = [{"role": "user", "content": prompt_user.replace(':\ ', ': ')}]
+        user_prompt = [{"role": "user", "content": prompt_user.replace(':\\ ', ': ')}]
         
         try:
             prompt = self.decoder_tokenizer.apply_chat_template(
@@ -1076,7 +1076,7 @@ class CLaRa(PreTrainedModel):
             prompt_len = len(self.decoder_tokenizer.encode(prompt, add_special_tokens=False))
         except TemplateError as e:
             if "System role not supported" in str(e):
-                combined_content = prompt_system + '\n' + prompt_user.replace(':\ ', ': ')
+                combined_content = prompt_system + '\n' + prompt_user.replace(':\\ ', ': ')
                 messages = [{"role": "user", "content": combined_content}]
                 prompt = self.decoder_tokenizer.apply_chat_template(
                     messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
@@ -1099,7 +1099,7 @@ class CLaRa(PreTrainedModel):
         prompt_user = f"Background:\n{docs}\n\nQuestion:{query}"
         
         sys_prompt = [{"role": "system", "content": prompt_system}]
-        user_prompt = [{"role": "user", "content": prompt_user.replace(':\ ', ': ')}]
+        user_prompt = [{"role": "user", "content": prompt_user.replace(':\\ ', ': ')}]
         
         try:
             prompt = self.decoder_tokenizer.apply_chat_template(
@@ -1121,7 +1121,7 @@ class CLaRa(PreTrainedModel):
             prompt_len = len(self.decoder_tokenizer.encode(prompt, add_special_tokens=False))
         except TemplateError as e:
             if "System role not supported" in str(e):
-                combined_content = prompt_system + '\n' + prompt_user.replace(':\ ', ': ')
+                combined_content = prompt_system + '\n' + prompt_user.replace(':\\ ', ': ')
                 messages = [{"role": "user", "content": combined_content}]
                 prompt = self.decoder_tokenizer.apply_chat_template(
                     messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
@@ -1147,7 +1147,7 @@ class CLaRa(PreTrainedModel):
         prompt_user = f"Background:\n{docs}\n\nQuestion:{query}"
         
         sys_prompt = [{"role": "system", "content": prompt_system}]
-        user_prompt = [{"role": "user", "content": prompt_user.replace(':\ ', ': ')}]
+        user_prompt = [{"role": "user", "content": prompt_user.replace(':\\ ', ': ')}]
         
         try:
             prompt = self.decoder_tokenizer.apply_chat_template(
@@ -1171,7 +1171,7 @@ class CLaRa(PreTrainedModel):
                 
         except TemplateError as e:
             if "System role not supported" in str(e):
-                combined_content = prompt_system + '\n' + prompt_user.replace(':\ ', ': ')
+                combined_content = prompt_system + '\n' + prompt_user.replace(':\\ ', ': ')
                 messages = [{"role": "user", "content": combined_content}]
                 
                 prompt = self.decoder_tokenizer.apply_chat_template(
