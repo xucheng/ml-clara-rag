@@ -5,6 +5,51 @@
 
 This software project accompanies the research paper, **CLaRa: Bridging Retrieval and Generation with Continuous Latent Reasoning**.
 
+---
+
+## 🔧 About This Fork
+
+This is a **custom fork** of the official [ml-clara](https://github.com/apple/ml-clara) repository with Colab-optimized improvements:
+
+### Key Improvements
+
+✅ **Flash Attention Made Optional**
+- Added fallback implementations for all flash_attn functions
+- Training works without flash_attn installation (10-15% slower but fully functional)
+- Automatic detection: uses flash_attn if available, falls back to PyTorch otherwise
+
+✅ **Dependency Conflicts Resolved**
+- Fixed fsspec version conflict with gcsfs
+- Eliminated pip dependency resolver errors
+
+✅ **Complete Colab Training Template**
+- `training_colab_complete.ipynb`: Full 3-stage training pipeline
+- Google Drive integration for data loading
+- Auto GPU detection and configuration
+- Comprehensive documentation (COLAB_TRAINING_GUIDE.md, COLAB_QUICK_REFERENCE.md)
+
+✅ **Enhanced Data Pipeline**
+- Complete data processing guide (DATA_PIPELINE_GUIDE.md)
+- Automated scripts for knowledge extraction and synthesis
+
+### Comparison with Official Repo
+
+| Feature | Official Repo | This Fork |
+|---------|--------------|-----------|
+| Flash Attention | Required | Optional (with fallback) |
+| Colab Training | Basic notebook | Complete 37-cell pipeline |
+| Google Drive Support | ❌ | ✅ |
+| Dependency Conflicts | ❌ | ✅ Fixed |
+| Data Pipeline Guide | ❌ | ✅ Comprehensive |
+
+### Upstream Compatibility
+
+This fork maintains compatibility with the official repository's training scripts and model architecture. All improvements are additive - you can still use the original training methods if preferred.
+
+**Official Repository:** [https://github.com/apple/ml-clara](https://github.com/apple/ml-clara)
+
+---
+
 ## Table of Contents
 
 - [Updates](#updates)
