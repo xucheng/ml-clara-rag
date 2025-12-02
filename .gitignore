@@ -127,3 +127,53 @@ Temporary Items
 *.tar.gz
 *.tgz
 ml-clara-package.tar.gz
+
+# ============================================
+# Sensitive Training Data (Enterprise Internal)
+# ============================================
+# Protect internal enterprise data from being committed
+data/internal/**/*.jsonl
+data/internal/**/*.json
+data/production/**/*
+data/customer/**/*
+data/proprietary/**/*
+
+# If example/ contains sensitive data, uncomment these:
+# example/*_data.jsonl
+# example/clara_training_data.jsonl
+# example/raw_knowledge.jsonl
+
+# ============================================
+# Sensitive Knowledge Base Documents
+# ============================================
+# Protect proprietary documents and presentations
+knowledge_base/**/*.pdf
+knowledge_base/**/*.pptx
+knowledge_base/**/*.docx
+knowledge_base/**/*.doc
+knowledge_base/**/*.xlsx
+knowledge_base/**/*.txt
+
+# ============================================
+# Sensitive Configuration Files
+# ============================================
+# Already protected: .env, .env.local
+.env.production
+.env.staging
+config/production.yaml
+config/production.yml
+config/secrets.yaml
+config/secrets.yml
+secrets/**/*
+credentials/**/*
+*.key
+*.pem
+*.p12
+*.pfx
+
+# ============================================
+# Extracted Assets (may contain sensitive images/data)
+# ============================================
+# Already protected: example/extracted_assets/
+data/extracted_assets/
+knowledge_base/extracted_assets/
