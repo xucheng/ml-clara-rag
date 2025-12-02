@@ -397,6 +397,8 @@ def preprocess_data(data: Dict[str, Any],
     # Extract answers
     if "answer" in data and isinstance(data['answer'], str):
         answers = data['answer']
+    elif "gold_answer" in data and isinstance(data['gold_answer'], str):
+        answers = data['gold_answer']
     elif "answers" in data and isinstance(data['answers'], list):
         answers = data['answers']
     elif "golden_answers" in data and isinstance(data['golden_answers'], list):

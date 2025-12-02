@@ -41,7 +41,7 @@ venv.bak/
 
 # Jupyter Notebook
 .ipynb_checkpoints
-*.ipynb
+# *.ipynb
 
 # PyTorch / DeepSpeed
 *.pth
