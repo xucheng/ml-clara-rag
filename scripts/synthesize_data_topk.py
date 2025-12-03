@@ -93,7 +93,7 @@ def generate_data(client: OpenAI, model: str, chunk: str) -> Optional[Dict]:
         print(f"\nError processing chunk: {e}")
         return None
 
-def get_embedding(client: OpenAI, text: str, model: str = "text-embedding-3-small") -> Optional[List[float]]:
+def get_embedding(client: OpenAI, text: str, model: str = "text-embedding-v3") -> Optional[List[float]]:
     """Get text embedding using OpenAI API."""
     try:
         response = client.embeddings.create(
