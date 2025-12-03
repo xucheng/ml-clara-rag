@@ -671,10 +671,12 @@ class CLaRa(PreTrainedModel):
                     query_reps, stage2_retrieval_top_n=stage2_retrieval_top_n
                 )
                 scores = torch.bmm(
-                    query_reps.unsqueeze(1), 
+                    query_reps.unsqueeze(1),
                     retrieved_doc_embeddings.transpose(1, 2)
                 ).squeeze(1)
-                z, topk_idx = differentiable_topk(scores, self.generation_top_k, temperature=0.5)
+                # Auto-adjust top-k to not exceed available documents
+                actual_top_k = min(self.generation_top_k, stage2_retrieval_top_n) if stage2_retrieval_top_n else self.generation_top_k
+                z, topk_idx = differentiable_topk(scores, actual_top_k, temperature=0.5)
                 selected_doc_embeddings = torch.einsum('bkn,bnd->bkd', z, retrieved_doc_embeddings)
                 selected_doc_embeddings = selected_doc_embeddings.view(
                     selected_doc_embeddings.size(0) * selected_doc_embeddings.size(1), 
@@ -709,8 +711,10 @@ class CLaRa(PreTrainedModel):
                     F.normalize(query_reps, dim=-1, p=2).unsqueeze(1).float(),
                     F.normalize(retrieved_doc_embeddings, dim=-1, p=2).float().transpose(1, 2)
                 ).squeeze(1)
-                
-                z, topk_idx = differentiable_topk(scores, self.generation_top_k, temperature=0.02)
+
+                # Auto-adjust top-k to not exceed available documents
+                actual_top_k = min(self.generation_top_k, stage2_retrieval_top_n)
+                z, topk_idx = differentiable_topk(scores, actual_top_k, temperature=0.02)
                 selected_doc_embeddings = torch.einsum('bkn,bnd->bkd', z.to(retrieved_doc_embeddings.dtype), retrieved_doc_embeddings)
                 selected_doc_embeddings = selected_doc_embeddings.view(
                     selected_doc_embeddings.size(0) * selected_doc_embeddings.size(1), 
@@ -1475,8 +1479,10 @@ class CLaRa(PreTrainedModel):
                 F.normalize(query_reps, dim=-1, p=2).unsqueeze(1).float(),
                 F.normalize(retrieved_doc_embeddings, dim=-1, p=2).float().transpose(1, 2)
             ).squeeze(1)
-            
-            z, topk_idx = differentiable_topk(scores, self.generation_top_k, temperature=0.02)
+
+            # Auto-adjust top-k to not exceed available documents
+            actual_top_k = min(self.generation_top_k, stage2_retrieval_top_n)
+            z, topk_idx = differentiable_topk(scores, actual_top_k, temperature=0.02)
             selected = torch.einsum('bkn,bnd->bkd', z.to(retrieved_doc_embeddings.dtype), retrieved_doc_embeddings)
             selected = selected.view(selected.size(0) * selected.size(1), -1, self.hidden_size)
 
