@@ -1,0 +1,31 @@
+# CLaRa Training Dependencies (for Google Colab)
+# Install in Colab with: pip install -r requirements-training.txt
+
+# Core training frameworks
+accelerate==1.10.1
+transformers==4.56.2
+datasets==3.2.0
+peft==0.17.1
+deepspeed==0.18.1
+
+# Model utilities
+einops==0.8.1
+sentencepiece==0.2.0
+tiktoken==0.11.0
+safetensors==0.6.2
+
+# Performance optimization (optional)
+# flash-attn  # Uncomment for 10-15% speedup (requires precompiled wheel)
+xformers==0.0.29.post2
+
+# Data processing
+pandas==2.2.3
+numpy==1.26.4
+
+# Monitoring (optional)
+wandb==0.22.2
+
+# PyTorch (usually pre-installed in Colab)
+# torch==2.8.0+cu118
+# torchvision==0.21.0+cu118
+# torchaudio==2.8.0+cu118
