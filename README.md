@@ -697,6 +697,74 @@ python scripts/synthesize_data.py \
     --model "$MODEL"
 ```
 
+### Advanced: Top-K Data Synthesis
+
+For Stage 3 (End-to-End) training with `generation_top_k > 1`, use the enhanced synthesis script that generates multiple candidate documents per question:
+
+**Standard synthesis (top-k=1):**
+```bash
+python scripts/synthesize_data.py \
+    --input_file example/raw_knowledge.jsonl \
+    --output_dir example \
+    --model qwen-turbo
+# Output: Each sample has 1 document
+```
+
+**Top-K synthesis (top-k=5, random negatives):**
+```bash
+python scripts/synthesize_data_topk.py \
+    --input_file example/raw_knowledge.jsonl \
+    --output_dir example \
+    --api_key $OPENAI_API_KEY \
+    --model qwen-turbo \
+    --target_top_k 5
+# Output: Each sample has 5 documents (1 positive + 4 negatives)
+```
+
+**Top-K synthesis (top-k=5, hard negatives):**
+```bash
+python scripts/synthesize_data_topk.py \
+    --input_file example/raw_knowledge.jsonl \
+    --output_dir example \
+    --api_key $OPENAI_API_KEY \
+    --base_url https://api.openai.com/v1 \
+    --model gpt-4o-mini \
+    --target_top_k 5 \
+    --use_embeddings
+# Output: Each sample has 5 semantically similar documents
+# Uses embedding-based hard negative mining for better quality
+```
+
+**Complete pipeline with top-k=5:**
+```bash
+# Run the automated pipeline with top-k support
+TARGET_TOP_K=5 USE_EMBEDDINGS=true bash scripts/run_data_pipeline_topk5.sh
+```
+
+**Key differences:**
+- **Top-K=1**: Simple QA (single document compression)
+- **Top-K=5**: Multi-document retrieval and ranking training
+- **Hard negatives**: Better training quality but requires OpenAI embedding API
+
+**Validate your data:**
+```bash
+# Check data format and top-k consistency
+python scripts/validate_topk_data.py \
+    --input_file example/end_to_end_data.jsonl \
+    --expected_top_k 5
+```
+
+**Training with top-k=5:**
+```bash
+# Update training script to match your data
+deepspeed --module openrlhf.cli.train_sft \
+   --stage stage2 \
+   --generation_top_k 5 \  # Must match your data!
+   # ... other args
+```
+
+See [TOPK_DATA_SYNTHESIS_GUIDE.md](docs/TOPK_DATA_SYNTHESIS_GUIDE.md) for detailed instructions, troubleshooting, and best practices.
+
 ### Supported APIs
 
 | Provider | BASE_URL | Models |
