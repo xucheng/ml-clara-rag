@@ -568,10 +568,15 @@ class CLaRa(PreTrainedModel):
         """Use decoder as compressor."""
         assert input_ids.size() == attention_mask.size()
         
+        # Use encoder_adapter if available, otherwise fall back to query_reasoner_adapter
+        # This handles both Stage 1 (encoder_adapter) and Stage 2 (query_reasoner_adapter) checkpoints
         if 'encoder_adapter' in self.adapter_keys:
             self.decoder.set_adapter('encoder_adapter')
+        elif 'query_reasoner_adapter' in self.adapter_keys:
+            # Fallback: Stage 1 checkpoint may have query_reasoner_adapter instead of encoder_adapter
+            self.decoder.set_adapter('query_reasoner_adapter')
         else:
-            raise ValueError(f"encoder_adapter not in adapter_keys: {self.adapter_keys}")
+            raise ValueError(f"Neither encoder_adapter nor query_reasoner_adapter in adapter_keys: {self.adapter_keys}")
 
         # Get embeddings from decoder
         emb = self.decoder(
