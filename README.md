@@ -121,32 +121,73 @@ In this repository, we release our implementation of **CLaRa**, built upon [Open
 
 ### Quick Start
 
+**Two ways to get started:**
+
+#### Option 1: Training on Google Colab (Recommended)
+
+```bash
+# 1. Open training_colab_complete.ipynb in Google Colab
+# 2. Follow the step-by-step guide
+# 3. Train all 3 stages in one notebook!
+```
+
+📖 See [COLAB_TRAINING_GUIDE.md](docs/COLAB_TRAINING_GUIDE.md) for detailed instructions.
+
+#### Option 2: Local Training
+
 ```bash
 # 1. Setup environment
 conda create -n clara python=3.10 -y
 conda activate clara
-pip install -r requirements.txt
 
-# 2. Configure settings
+# 2. Install dependencies (choose based on your needs)
+# For training only:
+pip install -r requirements-training.txt
+
+# For data pipeline (document extraction + synthesis):
+pip install -r requirements-data-pipeline.txt
+
+# For both:
+pip install -r requirements-training.txt requirements-data-pipeline.txt
+
+# 3. Configure settings
 cp .env.example .env
 # Edit .env with your API keys and paths
 
-# 3. Process your data (optional - use provided examples to skip)
+# 4. Process your data (optional - use provided examples to skip)
 export RAW_DATA_DIR="./raw_data"
 bash scripts/run_data_pipeline.sh
 
-# 4. Train Stage 1 (Compression Pretraining)
+# 5. Train Stage 1 (Compression Pretraining)
 export MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
 bash scripts/train_pretraining.sh
 
-# 5. Train Stage 2 (Instruction Tuning)
+# 6. Train Stage 2 (Instruction Tuning)
 export PRETRAIN_CKPT="./checkpoints/clara_stage1"
 bash scripts/train_instruction_tuning.sh
 
-# 6. Train Stage 3 (End-to-End)
+# 7. Train Stage 3 (End-to-End)
 export PRETRAIN_CHECKPOINT="./checkpoints/clara_stage2"
 bash scripts/train_stage_end_to_end.sh
 ```
+
+### Dependencies
+
+This project uses **separate dependency files** for different use cases:
+
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| **`requirements-training.txt`** | Training on Colab/GPU servers | Training CLaRa models |
+| **`requirements-data-pipeline.txt`** | Local data processing | Extracting knowledge from documents, synthesizing training data |
+| **`requirements.txt`** | Installation guide | Read this first! Contains detailed instructions |
+
+**Typical workflows:**
+
+1. **Colab Training (Recommended)**: Use `training_colab_complete.ipynb` - dependencies auto-installed
+2. **Local Training Only**: `pip install -r requirements-training.txt`
+3. **Data Processing + Training**: Install both requirement files
+
+See [requirements.txt](requirements.txt) for detailed installation guide.
 
 ### Project Structure
 
@@ -173,7 +214,11 @@ bash scripts/train_stage_end_to_end.sh
 │   ├── pretrain_data.jsonl
 │   ├── instruction_data.jsonl
 │   └── end_to_end_data.jsonl
+├── requirements.txt              # Installation guide (READ THIS FIRST)
+├── requirements-training.txt     # Training dependencies
+├── requirements-data-pipeline.txt # Data processing dependencies
 ├── .env.example                  # Environment variables template
+├── training_colab_complete.ipynb # Complete Colab training notebook
 ├── DATA_PIPELINE_GUIDE.md        # Detailed data pipeline documentation
 └── README.md                     # This file
 ```
@@ -188,8 +233,17 @@ env=clara
 conda create -n $env python=3.10 -y
 conda activate $env
 
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (choose based on your needs)
+# See requirements.txt for detailed explanation
+
+# For training only (recommended for Colab):
+pip install -r requirements-training.txt
+
+# For data pipeline (local document processing):
+pip install -r requirements-data-pipeline.txt
+
+# For both (full local development):
+pip install -r requirements-training.txt requirements-data-pipeline.txt
 
 # Set up environment variables
 cp .env.example .env
