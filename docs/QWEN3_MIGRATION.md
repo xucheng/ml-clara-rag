@@ -228,6 +228,28 @@ export MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
 4. Adjust hyperparameters based on initial results
 5. Run full 3-stage training pipeline
 
+## Common Training Issues
+
+### ZeroDivisionError: num_update_steps_per_epoch
+
+**Error**: `ZeroDivisionError: integer division or modulo by zero`
+
+**Cause**: Dataset size is smaller than batch size (e.g., 10 samples with batch_size=64)
+
+**Status**: ✅ Fixed in commit 35a0580
+
+**Solution**: The code now ensures `num_update_steps_per_epoch >= 1`, allowing training with small verification datasets.
+
+### Tokenizer Custom Attributes Lost
+
+**Error**: `TypeError: can only concatenate str (not 'NoneType') to str`
+
+**Cause**: Tokenizer attributes (`enc_token`, `mem_tokens`) lost during multiprocessing
+
+**Status**: ✅ Fixed in commit 41e5d1f
+
+**Solution**: Added `_ensure_tokenizer_attributes()` method that automatically restores attributes when needed.
+
 ## Questions or Issues?
 
 If you encounter problems during migration:
@@ -236,6 +258,7 @@ If you encounter problems during migration:
 2. Verify GPU memory: `nvidia-smi`
 3. Check logs in `wandb/` directory
 4. Review error messages in training output
+5. Ensure data files are complete (not truncated)
 
 For Qwen3-specific issues, refer to:
 - Qwen GitHub: https://github.com/QwenLM/Qwen
