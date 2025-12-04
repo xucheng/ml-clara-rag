@@ -250,33 +250,48 @@ export MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
 
 **Solution**: Added `_ensure_tokenizer_attributes()` method that automatically restores attributes when needed.
 
-### Data Quality: Questions About Image File Paths
+### Data Quality: Image Description Enrichment
 
-**Issue**: Synthesized data contains questions about technical file paths (e.g., "extracted_assets" folder) instead of business content
+**Issue**: How to properly use vision LLM-generated image descriptions in training data
 
-**Cause**: LLM sees `[IMAGE_REF: example/extracted_assets/xxx.png]` markers and generates questions about the technical artifacts
+**Background**:
+- The data pipeline extracts images from documents and uses vision LLM to generate semantic descriptions
+- Image descriptions are stored as standalone entries with `source_type: "image"` in `raw_knowledge.jsonl`
+- Document text contains `[IMAGE_REF: example/extracted_assets/xxx.png]` markers at image positions
 
-**Status**: ✅ Fixed in commit 4c466b6
+**Status**: ✅ Fixed in commit b6eae74
 
-**Solution**:
-1. Created `scripts/clean_extracted_assets_refs.py` to post-process existing data
-2. Updated `PROMPT_TEMPLATE` in synthesis scripts to explicitly instruct LLM to ignore technical markers
-3. Added `clean_chunk_for_synthesis()` function that removes `[IMAGE_REF: ...]` markers before LLM processing
-4. Replaces image references with `[图片]` placeholder to preserve document flow
+**Solution** (Image Description Enrichment):
+1. Load all image descriptions into memory at synthesis start
+2. Replace `[IMAGE_REF: ...]` markers with actual vision LLM descriptions
+3. LLM sees enriched documents with full semantic context (text + image descriptions)
+4. Can generate questions about image content (architecture diagrams, process flows, UI mockups)
+5. Avoids questions about technical artifacts (file paths, folder names)
+
+**Implementation**:
+- `load_image_descriptions()`: Reads all image entries from input file
+- `replace_image_refs_with_descriptions()`: Merges descriptions into document chunks
+- Updated `PROMPT_TEMPLATE`: Allows image content questions, blocks technical artifact questions
 
 **Usage**:
 ```bash
-# Clean existing data
-python scripts/clean_extracted_assets_refs.py \
-    --input example/pretrain_data.jsonl \
-    --output example/pretrain_data_cleaned.jsonl
-
-# Generate new data (automatically cleaned)
+# Automatic enrichment in new synthesis (recommended)
 python scripts/synthesize_data_topk.py \
     --input_file example/raw_knowledge.jsonl \
     --output_dir example \
     --api_key $OPENAI_API_KEY \
     --target_top_k 5
+
+# For legacy data without image descriptions (fallback only)
+python scripts/clean_extracted_assets_refs.py \
+    --input example/pretrain_data_old.jsonl \
+    --output example/pretrain_data_cleaned.jsonl
+```
+
+**Example Enrichment**:
+```
+Before: "架构设计如下 [IMAGE_REF: example/extracted_assets/arch.png]"
+After:  "架构设计如下 [IMAGE DESCRIPTION] The diagram shows microservices architecture..."
 ```
 
 ## Questions or Issues?
