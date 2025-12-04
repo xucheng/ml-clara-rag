@@ -273,6 +273,14 @@ export MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
 - `replace_image_refs_with_descriptions()`: Merges descriptions into document chunks
 - Updated `PROMPT_TEMPLATE`: Allows image content questions, blocks technical artifact questions
 
+**Two Types of Images** (commit 42c4d1d):
+1. **Embedded images** (`extracted_assets/`): Extracted from PDF/DOCX, merged into source documents via `[IMAGE_REF: ...]`
+2. **Standalone images** (`raw_data/`): Original image files, treated as independent documents
+
+Both types are now correctly processed:
+- Embedded images → descriptions merged into parent documents
+- Standalone images → vision LLM descriptions become independent training samples
+
 **Usage**:
 ```bash
 # Automatic enrichment in new synthesis (recommended)
