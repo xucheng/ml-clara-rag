@@ -754,6 +754,19 @@ python scripts/validate_topk_data.py \
     --expected_top_k 5
 ```
 
+**Clean image reference artifacts:**
+
+The synthesis scripts now automatically handle image references properly. If you have older data with image path questions, clean it:
+
+```bash
+# Remove questions about extracted_assets folder and file paths
+python scripts/clean_extracted_assets_refs.py \
+    --input example/pretrain_data.jsonl \
+    --output example/pretrain_data_cleaned.jsonl
+```
+
+This ensures questions focus on business content (features, processes, requirements) rather than technical artifacts like `[IMAGE_REF: extracted_assets/xxx.png]` markers.
+
 **Training with top-k=5:**
 ```bash
 # Update training script to match your data
