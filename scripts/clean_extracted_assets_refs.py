@@ -1,13 +1,21 @@
 #!/usr/bin/env python3
 """
-Clean image references from synthesized data.
+Clean image references from legacy synthesized data.
 
-This script fixes data quality issues where questions are generated about
-technical image paths (extracted_assets) instead of document content.
+IMPORTANT: This script is for LEGACY data only (before image enrichment feature).
+New data synthesis automatically replaces [IMAGE_REF: ...] with image descriptions.
 
-Usage:
+Use this script ONLY if you have old data that:
+1. Contains [IMAGE_REF: ...] markers without corresponding image descriptions
+2. Was generated before the image enrichment feature was implemented
+
+For new data synthesis, use:
+    - synthesize_data.py (automatically enriches with image descriptions)
+    - synthesize_data_topk.py (with image enrichment support)
+
+Usage (for legacy data only):
     python scripts/clean_extracted_assets_refs.py \
-        --input example/pretrain_data.jsonl \
+        --input example/pretrain_data_old.jsonl \
         --output example/pretrain_data_cleaned.jsonl
 """
 
