@@ -17,10 +17,13 @@ Your task is to read the provided [TEXT CHUNK] and generate high-quality trainin
 {{TEXT_CHUNK}}
 
 # Important Instructions
-- **IGNORE all technical markers** like [IMAGE_REF: ...], [图片], or file paths (extracted_assets, etc.)
-- **Focus ONLY on the actual business content** - features, processes, requirements, etc.
-- **Do NOT generate questions about** file paths, folder names, or image references
-- Treat [图片] markers as illustrations that support the text, not as topics themselves
+- **Focus on the actual business content** - features, processes, requirements, architecture, workflows, etc.
+- **You can generate questions about images** when they illustrate business concepts (e.g., architecture diagrams, process flows, UI mockups)
+- **Do NOT generate questions about technical artifacts** like:
+  - File paths or folder names (e.g., "What is in the extracted_assets folder?")
+  - Image file names (e.g., "What is xxx.png?")
+  - Document structure markers
+- Images descriptions are provided inline to help you understand the complete context
 
 # Task
 Generate a JSON object with two fields:
@@ -60,13 +63,75 @@ def parse_args():
     parser.add_argument("--chunk_size", type=int, default=1000, help="Character count per chunk")
     return parser.parse_args()
 
-def generate_data(client: OpenAI, model: str, chunk: str) -> Optional[Dict]:
+def load_image_descriptions(input_file: str) -> Dict[str, str]:
+    """
+    Load all image descriptions from the input file.
+
+    Returns:
+        Dict mapping image filename -> description content
+    """
+    image_descs = {}
+
+    if not os.path.exists(input_file):
+        return image_descs
+
+    with open(input_file, 'r', encoding='utf-8') as f:
+        for line in f:
+            try:
+                entry = json.loads(line)
+                if entry.get('source_type') == 'image' and 'filename' in entry and 'content' in entry:
+                    # Keep the full description
+                    image_descs[entry['filename']] = entry['content']
+            except json.JSONDecodeError:
+                continue
+
+    return image_descs
+
+def replace_image_refs_with_descriptions(chunk: str, image_descs: Dict[str, str]) -> str:
+    """
+    Replace [IMAGE_REF: path] markers with actual image descriptions.
+
+    This enriches the document with semantic image content instead of technical paths.
+    """
+    import re
+
+    # Remove "--- Extracted Images ---" section and everything after (that's just index)
+    if "--- Extracted Images ---" in chunk:
+        chunk = chunk.split("--- Extracted Images ---")[0]
+
+    # Find all [IMAGE_REF: ...] markers
+    def replace_ref(match):
+        full_path = match.group(1)
+        # Extract filename from path (e.g., "example/extracted_assets/xxx.png" -> "xxx.png")
+        filename = os.path.basename(full_path)
+
+        # Try to find the description
+        if filename in image_descs:
+            # Return the full description
+            return f"\n\n{image_descs[filename]}\n\n"
+        else:
+            # Fallback: use placeholder if description not found
+            return "[图片]"
+
+    # Replace all [IMAGE_REF: path] with descriptions
+    chunk = re.sub(r'\[IMAGE_REF:\s*([^\]]+)\]', replace_ref, chunk)
+
+    # Clean up excessive whitespace
+    chunk = re.sub(r'\n{3,}', '\n\n', chunk)
+    chunk = chunk.strip()
+
+    return chunk
+
+def generate_data(client: OpenAI, model: str, chunk: str, image_descs: Dict[str, str]) -> Optional[Dict]:
+    # Replace [IMAGE_REF: ...] with actual image descriptions
+    enriched_chunk = replace_image_refs_with_descriptions(chunk, image_descs)
+
     try:
         response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": "You are a helpful data synthesis assistant. Always output valid JSON."},
-                {"role": "user", "content": PROMPT_TEMPLATE.replace("{{TEXT_CHUNK}}", chunk)}
+                {"role": "user", "content": PROMPT_TEMPLATE.replace("{{TEXT_CHUNK}}", enriched_chunk)}
             ],
             response_format={"type": "json_object"},
             temperature=0.7,
@@ -89,21 +154,29 @@ def main():
     # Prepare output files
     output_path = Path(args.output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
-    
+
     f_pretrain = open(output_path / "pretrain_data.jsonl", 'w', encoding='utf-8')
     f_instruct = open(output_path / "instruction_data.jsonl", 'w', encoding='utf-8')
     f_e2e = open(output_path / "end_to_end_data.jsonl", 'w', encoding='utf-8')
 
-    # Read input
-    print(f"Reading input from {args.input_file}...")
-    
-    all_texts = [] 
-    
+    # Load image descriptions first (for enriching document chunks)
+    print(f"Loading image descriptions from {args.input_file}...")
+    image_descriptions = load_image_descriptions(args.input_file)
+    print(f"Loaded {len(image_descriptions)} image descriptions")
+
+    # Read input (excluding standalone image entries)
+    print(f"Reading documents from {args.input_file}...")
+
+    all_texts = []
+
     if args.input_file.endswith('.jsonl'):
         with open(args.input_file, 'r', encoding='utf-8') as f:
             for line in f:
                 try:
                     entry = json.loads(line)
+                    # Skip standalone image description entries (they'll be merged into docs via IMAGE_REF)
+                    if entry.get("source_type") == "image":
+                        continue
                     if "content" in entry and entry["content"].strip():
                         all_texts.append((entry.get("filename", "unknown"), entry["content"]))
                 except json.JSONDecodeError:
@@ -136,8 +209,8 @@ def main():
     for i, chunk in enumerate(tqdm(chunks, desc="Synthesizing")):
         if len(chunk.strip()) < 50:
             continue
-            
-        data = generate_data(client, args.model, chunk)
+
+        data = generate_data(client, args.model, chunk, image_descriptions)
         
         if data:
             # 1. Stage 1 Data (SCP/Pretrain)
