@@ -264,9 +264,12 @@ def main():
             for line in f:
                 try:
                     entry = json.loads(line)
-                    # Skip standalone image description entries (they'll be merged into docs via IMAGE_REF)
                     if entry.get("source_type") == "image":
-                        continue
+                        # Embedded images (from documents) are merged via IMAGE_REF, skip them
+                        if "extracted_assets" in entry.get("file_path", ""):
+                            continue
+                        # Standalone images (original files) are kept as independent documents
+                        # Fall through to add them to all_texts
                     if "content" in entry and entry["content"].strip():
                         all_texts.append((entry.get("filename", "unknown"), entry["content"]))
                 except json.JSONDecodeError:
