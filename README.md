@@ -754,18 +754,23 @@ python scripts/validate_topk_data.py \
     --expected_top_k 5
 ```
 
-**Clean image reference artifacts:**
+**Image Description Enrichment:**
 
-The synthesis scripts now automatically handle image references properly. If you have older data with image path questions, clean it:
+The synthesis scripts **automatically enrich documents with vision LLM-generated image descriptions**:
 
+- Image descriptions from `extract_images.py` (stored with `source_type: "image"`) are loaded into memory
+- `[IMAGE_REF: example/extracted_assets/xxx.png]` markers in documents are replaced with actual descriptions
+- LLM generates questions about image content (architecture, processes, UI) while avoiding file path questions
+
+**For legacy data only** (generated before this feature):
 ```bash
-# Remove questions about extracted_assets folder and file paths
+# Clean old data that has [IMAGE_REF: ...] without descriptions
 python scripts/clean_extracted_assets_refs.py \
-    --input example/pretrain_data.jsonl \
+    --input example/pretrain_data_old.jsonl \
     --output example/pretrain_data_cleaned.jsonl
 ```
 
-This ensures questions focus on business content (features, processes, requirements) rather than technical artifacts like `[IMAGE_REF: extracted_assets/xxx.png]` markers.
+New data synthesis automatically handles this - no manual cleaning needed.
 
 **Training with top-k=5:**
 ```bash
