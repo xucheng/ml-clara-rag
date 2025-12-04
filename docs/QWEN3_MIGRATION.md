@@ -250,6 +250,35 @@ export MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
 
 **Solution**: Added `_ensure_tokenizer_attributes()` method that automatically restores attributes when needed.
 
+### Data Quality: Questions About Image File Paths
+
+**Issue**: Synthesized data contains questions about technical file paths (e.g., "extracted_assets" folder) instead of business content
+
+**Cause**: LLM sees `[IMAGE_REF: example/extracted_assets/xxx.png]` markers and generates questions about the technical artifacts
+
+**Status**: ✅ Fixed in commit 4c466b6
+
+**Solution**:
+1. Created `scripts/clean_extracted_assets_refs.py` to post-process existing data
+2. Updated `PROMPT_TEMPLATE` in synthesis scripts to explicitly instruct LLM to ignore technical markers
+3. Added `clean_chunk_for_synthesis()` function that removes `[IMAGE_REF: ...]` markers before LLM processing
+4. Replaces image references with `[图片]` placeholder to preserve document flow
+
+**Usage**:
+```bash
+# Clean existing data
+python scripts/clean_extracted_assets_refs.py \
+    --input example/pretrain_data.jsonl \
+    --output example/pretrain_data_cleaned.jsonl
+
+# Generate new data (automatically cleaned)
+python scripts/synthesize_data_topk.py \
+    --input_file example/raw_knowledge.jsonl \
+    --output_dir example \
+    --api_key $OPENAI_API_KEY \
+    --target_top_k 5
+```
+
 ## Questions or Issues?
 
 If you encounter problems during migration:
