@@ -8,6 +8,12 @@ datasets==3.2.0
 peft==0.17.1
 deepspeed==0.18.1
 
+# Fix fsspec/gcsfs version conflict in Colab
+# Colab has gcsfs 2025.3.0 (requires fsspec==2025.3.0)
+# But datasets 3.2.0 requires fsspec<=2024.9.0
+# Solution: Use gcsfs 2024.6.1 (compatible with fsspec 2024.9.0)
+gcsfs==2024.6.1
+
 # Model utilities
 einops==0.8.1
 sentencepiece==0.2.0
