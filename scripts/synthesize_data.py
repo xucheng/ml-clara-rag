@@ -116,6 +116,11 @@ def replace_image_refs_with_descriptions(chunk: str, image_descs: Dict[str, str]
     # Replace all [IMAGE_REF: path] with descriptions
     chunk = re.sub(r'\[IMAGE_REF:\s*([^\]]+)\]', replace_ref, chunk)
 
+    # Remove HTML comment style image markers (<!-- image -->)
+    # These are generic placeholders from docling without specific image paths
+    # Since we can't match them to descriptions, remove them to avoid confusion
+    chunk = re.sub(r'<!--\s*image\s*-->', '', chunk, flags=re.IGNORECASE)
+
     # Clean up excessive whitespace
     chunk = re.sub(r'\n{3,}', '\n\n', chunk)
     chunk = chunk.strip()
