@@ -165,6 +165,12 @@ Qwen3 requires `trust_remote_code=True` in model loading. This is already config
 
 Both are supported by `AutoTokenizer`, no code changes needed.
 
+**Important**: CLaRa uses `use_fast=False` for tokenizer initialization. This is required because:
+- CLaRa adds custom attributes to tokenizers (`enc_token`, `mem_tokens`, `ae_token`, etc.)
+- Fast tokenizers (Rust-based) don't preserve custom Python attributes during pickling/unpickling
+- This causes training failures in multiprocessing data loading: `TypeError: can only concatenate str (not 'NoneType') to str`
+- Slow tokenizers properly persist custom attributes across processes
+
 ### Special Tokens
 
 Qwen3 uses different chat templates. If you encounter formatting issues, check:
@@ -181,6 +187,7 @@ tokenizer.chat_template
 - [x] Update README.md documentation
 - [x] Create model loading test script
 - [x] Create migration guide
+- [x] Fix tokenizer initialization (use_fast=False for custom attributes)
 - [ ] Run model loading test
 - [ ] Test Stage 1 training (compression pretraining)
 - [ ] Test Stage 2 training (instruction tuning)
