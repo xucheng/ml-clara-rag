@@ -759,7 +759,8 @@ python scripts/validate_topk_data.py \
 The synthesis scripts **automatically enrich documents with vision LLM-generated image descriptions**:
 
 - Image descriptions from `extract_images.py` (stored with `source_type: "image"`) are loaded into memory
-- `[IMAGE_REF: example/extracted_assets/xxx.png]` markers in documents are replaced with actual descriptions
+- **Embedded images** (`extracted_assets/`): Descriptions replace `[IMAGE_REF: ...]` markers in parent documents
+- **Standalone images** (`raw_data/*.jpg`): Treated as independent knowledge entries
 - LLM generates questions about image content (architecture, processes, UI) while avoiding file path questions
 
 **For legacy data only** (generated before this feature):
