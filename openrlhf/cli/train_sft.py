@@ -152,6 +152,8 @@ def setup_training_components(args: argparse.Namespace, model: CLaRa, train_data
 
     # Configure scheduler
     num_update_steps_per_epoch = len(train_dataset) // args.train_batch_size
+    # Ensure at least 1 step per epoch (for small datasets in verification/testing)
+    num_update_steps_per_epoch = max(1, num_update_steps_per_epoch)
     max_steps = math.ceil(args.max_epochs * num_update_steps_per_epoch)
 
     scheduler = get_scheduler(

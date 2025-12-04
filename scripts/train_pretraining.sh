@@ -21,7 +21,7 @@ SAVE_MODEL_NAME=clara_cluster2_2m_mix_stage1
 CHECKPOINT_ROOT="${CHECKPOINT_ROOT:-$PROJECT_ROOT/checkpoints}"
 SAVE_PATH="${SAVE_PATH:-$CHECKPOINT_ROOT/$SAVE_MODEL_NAME}"
 WANDB_TOKEN="${WANDB_TOKEN:-xx}"
-MODEL_PATH="${MODEL_PATH:-mistralai/Mistral-7B-Instruct-v0.2}"
+MODEL_PATH="${MODEL_PATH:-Qwen/Qwen3-4B-Instruct-2507}"
 
 mkdir -p $SAVE_PATH
 # cp -r /mnt/conductor_data/code/clara_project/clara_training $SAVE_PATH/

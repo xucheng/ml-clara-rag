@@ -468,8 +468,8 @@ class CLaRa(PreTrainedModel):
     def _create_decoder_tokenizer(cfg: CLaRaConfig) -> AutoTokenizer:
         """Create and configure the decoder tokenizer."""
         tokenizer = AutoTokenizer.from_pretrained(
-            cfg.decoder_model_name, 
-            use_fast=True, 
+            cfg.decoder_model_name,
+            use_fast=False,  # Use slow tokenizer to preserve custom attributes (enc_token, mem_tokens, etc.)
             padding_side='left',
             trust_remote_code=True
         )
@@ -526,6 +526,33 @@ class CLaRa(PreTrainedModel):
         
         print(f'Memory token count: {n_mem_tokens}')
         return tokenizer
+
+    def _ensure_tokenizer_attributes(self):
+        """
+        Ensure tokenizer has custom attributes set.
+        This is needed because pickling (used in multiprocessing DataLoader)
+        doesn't preserve custom Python attributes on tokenizer objects.
+        """
+        if not hasattr(self.decoder_tokenizer, 'enc_token') or self.decoder_tokenizer.enc_token is None:
+            # Restore special token attributes that were lost during pickling
+            self.decoder_tokenizer.enc_token = '<ENC>'
+            self.decoder_tokenizer.ae_token = '<AE>'
+            self.decoder_tokenizer.sep_token = '<SEP>'
+            self.decoder_tokenizer.sep_token_id = self.decoder_tokenizer.convert_tokens_to_ids('<SEP>')
+            self.decoder_tokenizer.ae_token_id = self.decoder_tokenizer.convert_tokens_to_ids('<AE>')
+
+            # Restore memory token attributes
+            n_mem_tokens = self.doc_max_length // self.compr_rate
+            if self.config.different_mem_tokens:
+                mem_tokens = [f'<MEM{i}>' for i in range(n_mem_tokens)]
+            else:
+                mem_tokens = ['<MEM>'] * n_mem_tokens
+
+            self.decoder_tokenizer.mem_tokens = mem_tokens
+            self.decoder_tokenizer.mem_token_ids = [
+                self.decoder_tokenizer.convert_tokens_to_ids(token) for token in mem_tokens
+            ]
+            self.decoder_tokenizer.mem_token_ids_pt = torch.LongTensor(self.decoder_tokenizer.mem_token_ids)
 
     def _get_peft_config(self, lora_r: int) -> LoraConfig:
         """Build the PEFT configuration."""
@@ -897,6 +924,9 @@ class CLaRa(PreTrainedModel):
 
     def _prepare_encoder_inputs_to_decoder(self, texts: List[str], max_length: int, q_texts: List[str] = None) -> Dict[str, torch.Tensor]:
         """Prepare encoder inputs when using decoder as compressor."""
+        # Ensure tokenizer attributes are available (may be lost during pickling)
+        self._ensure_tokenizer_attributes()
+
         if q_texts is not None:
             texts_to_encode = [
                 self.decoder_tokenizer.enc_token + 
@@ -1003,9 +1033,12 @@ class CLaRa(PreTrainedModel):
         
         return retrieval_embeddings
 
-    def _blend_prompt_and_memory_tokens(self, query: str, answer: str = None, qa_loss: bool = False, 
+    def _blend_prompt_and_memory_tokens(self, query: str, answer: str = None, qa_loss: bool = False,
                                        paraphrase_loss: bool = False, stage: str = "stage1") -> Tuple[int, str]:
         """Blend prompt with memory tokens for different training stages."""
+        # Ensure tokenizer attributes are available (may be lost during pickling)
+        self._ensure_tokenizer_attributes()
+
         mem_tokens_str = ''.join(self.decoder_tokenizer.mem_tokens) + self.decoder_tokenizer.sep_token
         docs = mem_tokens_str * self.generation_top_k
         
@@ -1154,6 +1187,9 @@ class CLaRa(PreTrainedModel):
 
     def _blend_prompt_and_selected_memory_tokens(self, query: str, answer: str = None) -> Tuple[int, str]:
         """Create prompt for stage 2 with selected memory tokens."""
+        # Ensure tokenizer attributes are available (may be lost during pickling)
+        self._ensure_tokenizer_attributes()
+
         mem_tokens_str = ''.join(self.decoder_tokenizer.mem_tokens) + self.decoder_tokenizer.sep_token
         docs = mem_tokens_str * self.generation_top_k
         
