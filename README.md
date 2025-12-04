@@ -159,7 +159,7 @@ export RAW_DATA_DIR="./raw_data"
 bash scripts/run_data_pipeline.sh
 
 # 5. Train Stage 1 (Compression Pretraining)
-export MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+export MODEL_PATH="Qwen/Qwen3-4B-Instruct-2507"
 bash scripts/train_pretraining.sh
 
 # 6. Train Stage 2 (Instruction Tuning)
@@ -271,7 +271,7 @@ VISION_MODEL=qwen-vl-max          # Vision model for image processing
 MODEL=qwen-turbo                   # Text model for synthesis
 
 # Training settings
-MODEL_PATH=mistralai/Mistral-7B-Instruct-v0.2  # Base model
+MODEL_PATH=Qwen/Qwen3-4B-Instruct-2507  # Base model
 CHECKPOINT_ROOT=./checkpoints      # Where to save checkpoints
 DATA_PATH=./data                   # Training data directory
 ```

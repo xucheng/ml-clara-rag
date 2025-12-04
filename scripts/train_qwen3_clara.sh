@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Training script for CLaRa using Qwen3 (Stage 1: Compression Pretraining)
+# Training script for CLaRa using Qwen3-4B-Instruct (Stage 1: Compression Pretraining)
 #
 
 set -ex
@@ -8,6 +8,12 @@ set -ex
 # Set environment variables
 export PYTHONPATH=$(pwd):$PYTHONPATH
 export WANDB_PROJECT="CLaRa-Qwen3"
+
+# Configuration
+MODEL_PATH="${MODEL_PATH:-Qwen/Qwen3-4B-Instruct-2507}"
+CHECKPOINT_ROOT="${CHECKPOINT_ROOT:-./checkpoints}"
+NUM_GPUS="${NUM_GPUS:-1}"
+SAVE_PATH="${SAVE_PATH:-$CHECKPOINT_ROOT/clara_qwen3_stage1}"
 
 # CLaRa Training Stage
 # stage1: Compression Pretraining (Learns to compress docs -> thought)
@@ -23,6 +29,8 @@ elif [ "$STAGE" == "stage2" ]; then
 else
     DATASET_PATH="./example/end_to_end_data.jsonl"
 fi
+
+mkdir -p $SAVE_PATH
 
 echo "Starting training with $MODEL_PATH on dataset $DATASET_PATH (Stage: $STAGE)..."
 
