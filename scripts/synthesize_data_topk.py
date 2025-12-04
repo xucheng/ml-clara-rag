@@ -117,11 +117,8 @@ def replace_image_refs_with_descriptions(chunk: str, image_descs: Dict[str, str]
     """
     import re
 
-    # Remove "--- Extracted Images ---" section and everything after (that's just index)
-    if "--- Extracted Images ---" in chunk:
-        chunk = chunk.split("--- Extracted Images ---")[0]
-
-    # Find all [IMAGE_REF: ...] markers
+    # IMPORTANT: Process in correct order to handle both dict and markdown modes!
+    # 1. First, replace [IMAGE_REF: ...] with descriptions (before removing anything)
     def replace_ref(match):
         full_path = match.group(1)
         # Extract filename from path (e.g., "example/extracted_assets/xxx.png" -> "xxx.png")
@@ -135,15 +132,19 @@ def replace_image_refs_with_descriptions(chunk: str, image_descs: Dict[str, str]
             # Fallback: use placeholder if description not found
             return "[图片]"
 
-    # Replace all [IMAGE_REF: path] with descriptions
     chunk = re.sub(r'\[IMAGE_REF:\s*([^\]]+)\]', replace_ref, chunk)
 
-    # Remove HTML comment style image markers (<!-- image -->)
+    # 2. Remove "--- Extracted Images ---" section marker (keep the replaced descriptions!)
+    # Use replace() instead of split() to only remove the marker, not the content after it
+    chunk = chunk.replace("--- Extracted Images ---\n", "")
+    chunk = chunk.replace("--- Extracted Images ---", "")
+
+    # 3. Remove HTML comment style image markers (<!-- image -->)
     # These are generic placeholders from docling without specific image paths
     # Since we can't match them to descriptions, remove them to avoid confusion
     chunk = re.sub(r'<!--\s*image\s*-->', '', chunk, flags=re.IGNORECASE)
 
-    # Clean up excessive whitespace
+    # 4. Clean up excessive whitespace
     chunk = re.sub(r'\n{3,}', '\n\n', chunk)
     chunk = chunk.strip()
 
