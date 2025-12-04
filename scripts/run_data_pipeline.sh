@@ -30,10 +30,13 @@ if [ -d "$EXTRACTED_ASSETS_DIR" ]; then
 fi
 
 # Using Docling for high-quality PDF/Doc layout analysis and image extraction
+# Default to 'dict' mode for precise image positioning (use --extraction_mode markdown for legacy)
+EXTRACTION_MODE="${EXTRACTION_MODE:-dict}"
 python scripts/extract_with_docling.py \
     --input_dir "$RAW_DATA_DIR" \
     --output_file "$INTERMEDIATE_FILE" \
-    --image_output_dir "$EXTRACTED_ASSETS_DIR"
+    --image_output_dir "$EXTRACTED_ASSETS_DIR" \
+    --extraction_mode "$EXTRACTION_MODE"
 
 echo "=== Step 1.5: Extracting semantic info from images (Optional) ==="
 # Note: Ensure your API_KEY and MODEL support Vision (e.g., gpt-4o, qwen-vl-max)
