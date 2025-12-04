@@ -468,8 +468,8 @@ class CLaRa(PreTrainedModel):
     def _create_decoder_tokenizer(cfg: CLaRaConfig) -> AutoTokenizer:
         """Create and configure the decoder tokenizer."""
         tokenizer = AutoTokenizer.from_pretrained(
-            cfg.decoder_model_name, 
-            use_fast=True, 
+            cfg.decoder_model_name,
+            use_fast=False,  # Use slow tokenizer to preserve custom attributes (enc_token, mem_tokens, etc.)
             padding_side='left',
             trust_remote_code=True
         )
