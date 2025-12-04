@@ -16,6 +16,12 @@ Your task is to read the provided [TEXT CHUNK] and generate high-quality trainin
 [TEXT CHUNK]:
 {{TEXT_CHUNK}}
 
+# Important Instructions
+- **IGNORE all technical markers** like [IMAGE_REF: ...], [图片], or file paths (extracted_assets, etc.)
+- **Focus ONLY on the actual business content** - features, processes, requirements, etc.
+- **Do NOT generate questions about** file paths, folder names, or image references
+- Treat [图片] markers as illustrations that support the text, not as topics themselves
+
 # Task
 Generate a JSON object with two fields:
 1. "dense_summary": A rewritten paragraph that contains ALL key information from the text chunk. It should be 50-80% of the original length.

@@ -34,6 +34,12 @@ Your task is to read the provided [TEXT CHUNK] and generate high-quality trainin
 [TEXT CHUNK]:
 {{TEXT_CHUNK}}
 
+# Important Instructions
+- **IGNORE all technical markers** like [IMAGE_REF: ...], [图片], or file paths (extracted_assets, etc.)
+- **Focus ONLY on the actual business content** - features, processes, requirements, etc.
+- **Do NOT generate questions about** file paths, folder names, or image references
+- Treat [图片] markers as illustrations that support the text, not as topics themselves
+
 # Task
 Generate a JSON object with two fields:
 1. "dense_summary": A rewritten paragraph that contains ALL key information from the text chunk. It should be 50-80% of the original length.
@@ -74,14 +80,44 @@ def parse_args():
     parser.add_argument("--use_embeddings", action="store_true", help="Use embeddings for hard negative mining (requires OpenAI API)")
     return parser.parse_args()
 
+def clean_chunk_for_synthesis(chunk: str) -> str:
+    """
+    Clean technical image references from chunk before LLM processing.
+
+    This prevents LLM from generating questions about file paths or folder names.
+    """
+    import re
+
+    # Remove "--- Extracted Images ---" section and everything after
+    if "--- Extracted Images ---" in chunk:
+        chunk = chunk.split("--- Extracted Images ---")[0]
+
+    # Replace [IMAGE_REF: example/extracted_assets/xxx.png] with [图片]
+    # This preserves document flow while removing technical details
+    chunk = re.sub(r'\[IMAGE_REF:.*?\]', '[图片]', chunk)
+
+    # Remove consecutive [图片] markers (keep max 1)
+    chunk = re.sub(r'(\[图片\]\s*){2,}', '[图片] ', chunk)
+
+    # Clean up whitespace
+    chunk = re.sub(r'\n{3,}', '\n\n', chunk)
+    chunk = chunk.strip()
+
+    return chunk
+
+
 def generate_data(client: OpenAI, model: str, chunk: str) -> Optional[Dict]:
     """Generate QA pairs from a text chunk using LLM."""
+
+    # Clean chunk before sending to LLM
+    cleaned_chunk = clean_chunk_for_synthesis(chunk)
+
     try:
         response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": "You are a helpful data synthesis assistant. Always output valid JSON."},
-                {"role": "user", "content": PROMPT_TEMPLATE.replace("{{TEXT_CHUNK}}", chunk)}
+                {"role": "user", "content": PROMPT_TEMPLATE.replace("{{TEXT_CHUNK}}", cleaned_chunk)}
             ],
             response_format={"type": "json_object"},
             temperature=0.7,
