@@ -97,6 +97,8 @@ GEMINI.md
 *.swp
 temp/
 tmp/
+clean_msg.py
+example/raw_knowledge.jsonl
 
 # macOS
 .DS_Store
@@ -139,9 +141,9 @@ data/customer/**/*
 data/proprietary/**/*
 
 # If example/ contains sensitive data, uncomment these:
-# example/*_data.jsonl
-# example/clara_training_data.jsonl
-# example/raw_knowledge.jsonl
+example/*_data.jsonl
+example/clara_training_data.jsonl
+# example/raw_knowledge.jsonl (already ignored above)
 
 # ============================================
 # Sensitive Knowledge Base Documents
