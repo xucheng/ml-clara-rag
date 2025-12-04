@@ -4,8 +4,9 @@
 # Document extraction
 python-pptx==0.6.23  # Extract from PowerPoint
 python-docx==1.1.2   # Extract from Word documents
-PyPDF2==3.0.1        # Extract from PDFs
+pypdf==6.4.0         # Extract from PDFs (modern fork of PyPDF2)
 pdfplumber==0.11.4   # Advanced PDF extraction with tables
+docling==2.63.0      # IBM Docling - Advanced document parsing (PDF/DOCX/PPTX)
 
 # Image processing (for PPTX/PDF images)
 Pillow==11.1.0
