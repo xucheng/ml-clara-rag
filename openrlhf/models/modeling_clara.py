@@ -533,25 +533,52 @@ class CLaRa(PreTrainedModel):
         This is needed because pickling (used in multiprocessing DataLoader)
         doesn't preserve custom Python attributes on tokenizer objects.
         """
-        if not hasattr(self.decoder_tokenizer, 'enc_token') or self.decoder_tokenizer.enc_token is None:
-            # Restore special token attributes that were lost during pickling
+        # Always set these attributes to ensure they're valid strings
+        # (pickling may cause them to become None or invalid)
+        if not hasattr(self.decoder_tokenizer, 'enc_token') or \
+           self.decoder_tokenizer.enc_token is None or \
+           not isinstance(self.decoder_tokenizer.enc_token, str):
             self.decoder_tokenizer.enc_token = '<ENC>'
+
+        if not hasattr(self.decoder_tokenizer, 'ae_token') or \
+           self.decoder_tokenizer.ae_token is None or \
+           not isinstance(self.decoder_tokenizer.ae_token, str):
             self.decoder_tokenizer.ae_token = '<AE>'
+
+        if not hasattr(self.decoder_tokenizer, 'sep_token') or \
+           self.decoder_tokenizer.sep_token is None or \
+           not isinstance(self.decoder_tokenizer.sep_token, str):
             self.decoder_tokenizer.sep_token = '<SEP>'
+
+        # Always set token IDs
+        if not hasattr(self.decoder_tokenizer, 'sep_token_id') or self.decoder_tokenizer.sep_token_id is None:
             self.decoder_tokenizer.sep_token_id = self.decoder_tokenizer.convert_tokens_to_ids('<SEP>')
+
+        if not hasattr(self.decoder_tokenizer, 'ae_token_id') or self.decoder_tokenizer.ae_token_id is None:
             self.decoder_tokenizer.ae_token_id = self.decoder_tokenizer.convert_tokens_to_ids('<AE>')
 
-            # Restore memory token attributes
-            n_mem_tokens = self.doc_max_length // self.compr_rate
+        # Restore memory token attributes
+        n_mem_tokens = self.doc_max_length // self.compr_rate
+
+        if not hasattr(self.decoder_tokenizer, 'mem_tokens') or \
+           self.decoder_tokenizer.mem_tokens is None or \
+           len(self.decoder_tokenizer.mem_tokens) != n_mem_tokens:
             if self.config.different_mem_tokens:
                 mem_tokens = [f'<MEM{i}>' for i in range(n_mem_tokens)]
             else:
                 mem_tokens = ['<MEM>'] * n_mem_tokens
-
             self.decoder_tokenizer.mem_tokens = mem_tokens
+
+        if not hasattr(self.decoder_tokenizer, 'mem_token_ids') or \
+           self.decoder_tokenizer.mem_token_ids is None or \
+           len(self.decoder_tokenizer.mem_token_ids) != n_mem_tokens:
             self.decoder_tokenizer.mem_token_ids = [
-                self.decoder_tokenizer.convert_tokens_to_ids(token) for token in mem_tokens
+                self.decoder_tokenizer.convert_tokens_to_ids(token)
+                for token in self.decoder_tokenizer.mem_tokens
             ]
+
+        if not hasattr(self.decoder_tokenizer, 'mem_token_ids_pt') or \
+           self.decoder_tokenizer.mem_token_ids_pt is None:
             self.decoder_tokenizer.mem_token_ids_pt = torch.LongTensor(self.decoder_tokenizer.mem_token_ids)
 
     def _get_peft_config(self, lora_r: int) -> LoraConfig:
