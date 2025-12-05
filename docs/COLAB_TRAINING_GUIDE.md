@@ -2,6 +2,10 @@
 
 完整的 Google Colab 训练教程 - 使用合成数据在云端训练 CLaRa 模型
 
+**模型**: Qwen3-4B-Instruct-2507 (4B 参数, 多语言支持)
+**配置**: 统一批次大小 (32/1), Top-K=5 多文档训练
+**最后更新**: 2025-12-05
+
 ---
 
 ## 📖 目录
@@ -47,10 +51,10 @@
 - 点击 "运行时" → "全部运行"
 - 或按 `Ctrl+F9` / `Cmd+F9`
 
-**预计总时间：**
-- T4 GPU：1-2 小时
-- V100 GPU：45-90 分钟
-- A100 GPU：30-60 分钟
+**预计总时间** (使用 Qwen3-4B，比 Mistral-7B 快 ~40%)：
+- T4 GPU：45-90 分钟
+- V100 GPU：25-45 分钟
+- A100 GPU：15-30 分钟
 
 ---
 
@@ -117,38 +121,43 @@ graph TD
 - `--compress_rate 32`（32倍压缩）
 - `--qa_loss`（QA 损失）
 - `--mse_loss`（MSE 损失）
+- `--train_batch_size 32` `--micro_train_batch_size 1`（统一配置）
 
 **输出：** `/content/checkpoints/clara_stage1/`
 
 #### Stage 2: 指令微调 (Instruction Tuning)
 
-**目标：** 在下游 QA 任务上微调压缩器
+**目标：** 在下游 QA 任务上微调压缩器（支持 Top-K=5 多文档检索）
 
 **输入数据格式：** `instruction_data.jsonl`
 ```json
 {
   "question": "问题文本",
-  "docs": ["文档1", "文档2"],
+  "docs": ["文档1", "文档2", "文档3", "文档4", "文档5"],
   "gold_answer": "参考答案"
 }
 ```
 
 **关键参数：**
-- `--stage stage2`
-- `--ckpt_path` 指向 Stage 1 检查点
+- `--stage stage1_2`
+- `--pretrain_checkpoint` 指向 Stage 1 检查点
+- `--generation_top_k 5`（检索 Top-5 文档）
+- `--train_batch_size 32` `--micro_train_batch_size 1`
 
 **输出：** `/content/checkpoints/clara_stage2/`
 
 #### Stage 3: 端到端训练 (End-to-End Training)
 
-**目标：** 联合训练重排序器和生成器
+**目标：** 联合训练重排序器和生成器（Top-K=5）
 
-**输入数据格式：** `end_to_end_data.jsonl`（与 Stage 2 相同）
+**输入数据格式：** `end_to_end_data.jsonl`（与 Stage 2 相同，5个文档）
 
 **关键参数：**
-- `--stage stage3`
+- `--stage stage2`
 - `--generation_top_k 5`（top-k 检索）
-- `--ckpt_path` 指向 Stage 2 检查点
+- `--pretrain_checkpoint` 指向 Stage 2 检查点
+- `--learning_rate 5e-6`（更低学习率）
+- `--max_len 1024`（更短序列）
 
 **输出：** `/content/checkpoints/clara_stage3_final/` （最终模型）
 
@@ -235,25 +244,22 @@ uploaded = files.upload()  # 选择你的 .jsonl 文件
 
 ## ⚙️ 训练配置
 
-### 自动配置
+### 统一配置 (Qwen3-4B)
 
-Notebook 会根据 GPU 内存自动调整参数：
+使用统一批次配置以确保稳定性和最小化 OOM 错误：
 
 ```python
-# T4 (16GB)
+# 所有 GPU 统一配置 (T4/V100/A100)
+MODEL_PATH = "Qwen/Qwen3-4B-Instruct-2507"
 TRAIN_BATCH_SIZE = 32
 MICRO_BATCH_SIZE = 1
-MAX_SAMPLES = 200
 
-# V100/A100-40GB
-TRAIN_BATCH_SIZE = 64
-MICRO_BATCH_SIZE = 2
-MAX_SAMPLES = 500
+# Stage 2 & 3: Top-K=5 多文档训练
+GENERATION_TOP_K = 5
 
-# A100-80GB
-TRAIN_BATCH_SIZE = 128
-MICRO_BATCH_SIZE = 2
-MAX_SAMPLES = 1000
+# 样本数可根据 GPU 调整
+# T4: MAX_SAMPLES = 200-500
+# V100/A100: MAX_SAMPLES = 500-1000
 ```
 
 ### 手动调整
@@ -500,7 +506,7 @@ from google.colab import files
 files.download('/content/checkpoints/clara_final.zip')
 ```
 
-**文件大小：** ~14GB（Mistral-7B）
+**文件大小：** ~8GB（Qwen3-4B，比 Mistral-7B 小 43%）
 
 ### 方法 2：保存到 Google Drive
 
@@ -761,9 +767,17 @@ print(f"Available GPUs: {NUM_GPUS}")
 
 ---
 
-**版本**: 1.0
-**最后更新**: 2025-12-01
-**适用于**: CLaRa v1.0 + Google Colab
+## 📋 重要更新 (2025-12-05)
+
+本指南已更新为 Qwen3-4B-Instruct-2507 版本，包括：
+- ✅ 统一批次配置 (32/1) 最小化 OOM
+- ✅ Top-K=5 多文档训练支持
+- ✅ 自动 GPU 内存清理
+- ✅ 更快训练速度（比 Mistral-7B 快 ~40%）
+
+**版本**: 2.0 (Qwen3)
+**最后更新**: 2025-12-05
+**适用于**: CLaRa with Qwen3-4B-Instruct + Google Colab
 
 **制作**: CLaRa Team with ❤️
 
