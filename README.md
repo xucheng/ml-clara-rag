@@ -158,17 +158,13 @@ cp .env.example .env
 export RAW_DATA_DIR="./raw_data"
 bash scripts/run_data_pipeline.sh
 
-# 5. Train Stage 1 (Compression Pretraining)
-export MODEL_PATH="Qwen/Qwen3-4B-Instruct-2507"
-bash scripts/train_pretraining.sh
+# 5. Train all 3 stages (one command with GPU detection)
+bash scripts/train_qwen3_clara.sh
 
-# 6. Train Stage 2 (Instruction Tuning)
-export PRETRAIN_CKPT="./checkpoints/clara_stage1"
-bash scripts/train_instruction_tuning.sh
-
-# 7. Train Stage 3 (End-to-End)
-export PRETRAIN_CHECKPOINT="./checkpoints/clara_stage2"
-bash scripts/train_stage_end_to_end.sh
+# Or train stages individually:
+# Stage 1: bash scripts/train_pretraining.sh
+# Stage 2: bash scripts/train_instruction_tuning.sh
+# Stage 3: bash scripts/train_stage_end_to_end.sh
 ```
 
 ### Dependencies
@@ -351,7 +347,7 @@ All training scripts now support environment variable configuration. Set the req
 
 ```bash
 # Common settings for all stages
-export MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"  # Or your model path
+export MODEL_PATH="Qwen/Qwen3-4B-Instruct-2507"  # Default base model
 export CHECKPOINT_ROOT="./checkpoints"
 export DATA_PATH="./example"  # Where your JSONL files are located
 ```
@@ -383,20 +379,20 @@ Fine-tune the compressor on instruction-following tasks:
 
 ```bash
 # Point to Stage 1 checkpoint
-export PRETRAIN_CKPT="./checkpoints/clara_cluster2_2m_mix_stage1"
+export PRETRAIN_CKPT="./checkpoints/clara_stage1"
 
 # Run training
 bash scripts/train_instruction_tuning.sh
 ```
 
-The model will be saved to `$CHECKPOINT_ROOT/clara_cluster1_2_2m_split_data_single_32_mistral`
+The model will be saved to `$CHECKPOINT_ROOT/clara_stage2`
 
 Key parameters:
 - `--pretrain_checkpoint`: Path to stage 1 checkpoint (via `$PRETRAIN_CKPT`)
 - `--stage stage1_2`: Training stage
-- `--generation_top_k`: Top-k sampling for generation (default: 5)
-- `--mse_loss`: Use MSE loss for compression training
-- `--do_eval_gen`: Enable generation evaluation
+- `--generation_top_k 5`: Multi-document retrieval (5 candidate docs)
+- `--train_batch_size 32`: Unified batch configuration
+- `--micro_train_batch_size 1`: Gradient accumulation
 
 **Stage 3: End-to-End Training**
 
@@ -404,19 +400,20 @@ Jointly train retrieval and generation end-to-end:
 
 ```bash
 # Point to Stage 2 checkpoint
-export PRETRAIN_CHECKPOINT="./checkpoints/clara_cluster1_2_2m_split_data_single_32_mistral"
+export PRETRAIN_CHECKPOINT="./checkpoints/clara_stage2"
 
 # Run training
 bash scripts/train_stage_end_to_end.sh
 ```
 
-The model will be saved to `$CHECKPOINT_ROOT/clara_stage2_debug`
+The model will be saved to `$CHECKPOINT_ROOT/clara_stage3`
 
 Key parameters:
 - `--pretrain_checkpoint`: Path to stage 2 checkpoint (via `$PRETRAIN_CHECKPOINT`)
 - `--stage stage2`: Training stage
-- `--generation_top_k`: Top-k sampling for generation
-- `--do_eval_gen`: Enable generation evaluation
+- `--generation_top_k 5`: Multi-document retrieval (5 candidate docs)
+- `--learning_rate 5e-6`: Lower learning rate for fine-tuning
+- `--max_len 1024`: Shorter sequences for efficiency
 
 #### 4. Distributed Training
 
@@ -812,7 +809,7 @@ See [DATA_PIPELINE_GUIDE.md](DATA_PIPELINE_GUIDE.md) for detailed Colab setup in
 **Environment Variables Not Working**
 ```bash
 # Make sure to export variables before running scripts
-export MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
+export MODEL_PATH="Qwen/Qwen3-4B-Instruct-2507"
 export CHECKPOINT_ROOT="./checkpoints"
 
 # Or source .env file
