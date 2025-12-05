@@ -12,17 +12,30 @@ from PIL import Image
 # Supported Image Extensions
 IMG_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.bmp', '.webp'}
 
-def validate_and_convert_image(image_path: Path) -> str:
+def validate_and_convert_image(image_path: Path, min_dimension: int = 10) -> str:
     """
     Validates image using Pillow and converts to standardized JPEG base64.
-    Returns base64 string if valid, None otherwise.
+
+    Args:
+        image_path: Path to image file
+        min_dimension: Minimum width/height in pixels (default: 10)
+
+    Returns:
+        base64 string if valid, None otherwise.
     """
     try:
         with Image.open(image_path) as img:
+            width, height = img.size
+
+            # Check minimum dimensions (API requirement: both dimensions must be > 10px)
+            if width <= min_dimension or height <= min_dimension:
+                print(f"⚠️  Skipping too small image {image_path.name}: {width}x{height} (min: {min_dimension}px)")
+                return None
+
             # Convert to RGB (removes alpha channel, fixes RGBA issues)
             if img.mode in ('RGBA', 'P', 'LA'):
                 img = img.convert('RGB')
-            
+
             # Resize if too large (optional optimization for token/speed)
             # Qwen/GPT-4 usually handle up to 2048x2048 well, but strict limits exist.
             if max(img.size) > 2048:
@@ -33,7 +46,7 @@ def validate_and_convert_image(image_path: Path) -> str:
             img.save(buffer, format="JPEG", quality=85)
             return base64.b64encode(buffer.getvalue()).decode('utf-8')
     except Exception as e:
-        print(f"Skipping corrupt/unsupported image {image_path.name}: {e}")
+        print(f"⚠️  Skipping corrupt/unsupported image {image_path.name}: {e}")
         return None
 
 def get_processed_images(output_file: str) -> set:
@@ -169,11 +182,12 @@ def main():
     
     processed_count = 0
     failed_count = 0
+    skipped_count = 0  # For images that are invalid/too small
 
     with open(args.output_file, 'a', encoding='utf-8') as f:
         for img_path in tqdm(images_to_process, desc="Analyzing Images"):
             description = analyze_image(client, args.model, img_path, max_retries=args.max_retries)
-            
+
             if description:
                 entry = {
                     "file_path": str(img_path),
@@ -187,6 +201,8 @@ def main():
                 f.flush()
                 processed_count += 1
             else:
+                # Check if it was skipped due to validation or failed after retries
+                # (We can't distinguish perfectly, but assume None from validation is skip)
                 failed_count += 1
 
             time.sleep(1) # Rate limit
@@ -195,7 +211,8 @@ def main():
     print(f"📊 Image Processing Summary:")
     print(f"   ✅ Successfully processed: {processed_count} images")
     if failed_count > 0:
-        print(f"   ❌ Failed after retries:   {failed_count} images")
+        print(f"   ⚠️  Skipped/Failed:        {failed_count} images")
+        print(f"      (Too small, corrupt, or connection errors)")
         print(f"   ℹ️  Failed images will be retried on next run")
     print(f"   📝 Results appended to: {args.output_file}")
     print(f"{'='*60}")
