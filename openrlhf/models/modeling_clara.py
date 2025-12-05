@@ -550,6 +550,24 @@ class CLaRa(PreTrainedModel):
            not isinstance(self.decoder_tokenizer.sep_token, str):
             self.decoder_tokenizer.sep_token = '<SEP>'
 
+        # CRITICAL: Also ensure standard tokenizer attributes aren't None after pickling
+        # These are normally set by HuggingFace tokenizers but can become None in DataLoader workers
+        if not hasattr(self.decoder_tokenizer, 'bos_token') or \
+           self.decoder_tokenizer.bos_token is None:
+            # Use the tokenizer's actual BOS token or fall back to a default
+            if hasattr(self.decoder_tokenizer, 'special_tokens_map') and 'bos_token' in self.decoder_tokenizer.special_tokens_map:
+                self.decoder_tokenizer.bos_token = self.decoder_tokenizer.special_tokens_map['bos_token']
+            else:
+                self.decoder_tokenizer.bos_token = '<|im_start|>'  # Qwen3 default
+
+        if not hasattr(self.decoder_tokenizer, 'eos_token') or \
+           self.decoder_tokenizer.eos_token is None:
+            # Use the tokenizer's actual EOS token or fall back to a default
+            if hasattr(self.decoder_tokenizer, 'special_tokens_map') and 'eos_token' in self.decoder_tokenizer.special_tokens_map:
+                self.decoder_tokenizer.eos_token = self.decoder_tokenizer.special_tokens_map['eos_token']
+            else:
+                self.decoder_tokenizer.eos_token = '<|im_end|>'  # Qwen3 default
+
         # Always set token IDs
         if not hasattr(self.decoder_tokenizer, 'sep_token_id') or self.decoder_tokenizer.sep_token_id is None:
             self.decoder_tokenizer.sep_token_id = self.decoder_tokenizer.convert_tokens_to_ids('<SEP>')
